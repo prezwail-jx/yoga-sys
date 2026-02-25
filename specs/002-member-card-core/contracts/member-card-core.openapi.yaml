@@ -1,0 +1,301 @@
+openapi: 3.0.3
+info:
+  title: Member Card Core API
+  version: 0.1.0
+  description: API contract for member and card core domain.
+servers:
+  - url: https://api.yoga-sys.local
+tags:
+  - name: Members
+  - name: CardProducts
+  - name: MemberCards
+  - name: Transactions
+  - name: WriteOff
+  - name: Audit
+paths:
+  /members:
+    post:
+      tags: [Members]
+      summary: Create member
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMemberRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+        '403': { description: Forbidden }
+  /members/{memberId}:
+    patch:
+      tags: [Members]
+      summary: Update member profile/status
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMemberRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+        '403': { description: Forbidden }
+    delete:
+      tags: [Members]
+      summary: Soft delete member
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+      responses:
+        '204': { description: Soft deleted }
+        '403': { description: Forbidden }
+  /members/{memberId}/timeline:
+    get:
+      tags: [Audit]
+      summary: Query member timeline records
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+      responses:
+        '200':
+          description: Timeline returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TimelineEvent'
+        '403': { description: Forbidden }
+  /card-products:
+    post:
+      tags: [CardProducts]
+      summary: Create card product
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCardProductRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardProduct'
+  /member-cards/{memberCardId}/freeze:
+    post:
+      tags: [MemberCards]
+      summary: Freeze member card
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/MemberCardId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason, frozenUntil]
+              properties:
+                reason: { type: string }
+                frozenUntil: { type: string, format: date-time }
+      responses:
+        '200': { description: Frozen }
+  /member-cards/{memberCardId}/unfreeze:
+    post:
+      tags: [MemberCards]
+      summary: Unfreeze member card and extend expiry
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/MemberCardId'
+      responses:
+        '200': { description: Unfrozen }
+  /transactions:
+    post:
+      tags: [Transactions]
+      summary: Create card transaction (purchase/renew/reissue/refund)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+      responses:
+        '200':
+          description: Success or idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+  /writeoff/events:
+    post:
+      tags: [WriteOff]
+      summary: Apply write-off event
+      description: "Unified lifecycle: reserve_hold -> checkin_commit -> cancel_refund"
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWriteOffEventRequest'
+      responses:
+        '200':
+          description: Applied or idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WriteOffEvent'
+        '409': { description: Invalid lifecycle transition }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    MemberId:
+      name: memberId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    MemberCardId:
+      name: memberCardId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 8, maxLength: 128 }
+  schemas:
+    Member:
+      type: object
+      required: [id, name, phone, status]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        phone: { type: string }
+        status:
+          type: string
+          enum: [normal, paused, expired, disabled]
+        deletedAt: { type: string, format: date-time, nullable: true }
+    CreateMemberRequest:
+      type: object
+      required: [name, phone, joinDate]
+      properties:
+        name: { type: string }
+        phone: { type: string }
+        joinDate: { type: string, format: date }
+        gender: { type: string }
+        birthday: { type: string, format: date }
+        note: { type: string }
+    UpdateMemberRequest:
+      type: object
+      properties:
+        name: { type: string }
+        status:
+          type: string
+          enum: [normal, paused, expired, disabled]
+        note: { type: string }
+    CardProduct:
+      type: object
+      required: [id, name, cardType, price]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        cardType:
+          type: string
+          enum: [duration, times, private, trial]
+        price: { type: number }
+    CreateCardProductRequest:
+      type: object
+      required: [name, cardType, price, activationMode, applicableCourseScope]
+      properties:
+        name: { type: string }
+        cardType:
+          type: string
+          enum: [duration, times, private, trial]
+        price: { type: number }
+        totalTimes: { type: integer }
+        validDays: { type: integer }
+        activationMode:
+          type: string
+          enum: [immediate, first_booking]
+        applicableCourseScope:
+          type: string
+          enum: [group, private, specific]
+        absenceDeductEnabled: { type: boolean }
+        cancelRefundEnabled: { type: boolean }
+    CreateTransactionRequest:
+      type: object
+      required: [memberId, txnType]
+      properties:
+        memberId: { type: string, format: uuid }
+        memberCardId: { type: string, format: uuid }
+        txnType:
+          type: string
+          enum: [purchase, renew, reissue, refund, freeze, unfreeze, extend]
+        amount: { type: number }
+        timesDelta: { type: integer }
+        validDaysDelta: { type: integer }
+    Transaction:
+      type: object
+      required: [id, memberId, txnType, traceId]
+      properties:
+        id: { type: string, format: uuid }
+        memberId: { type: string, format: uuid }
+        txnType: { type: string }
+        traceId: { type: string }
+    CreateWriteOffEventRequest:
+      type: object
+      required: [memberId, businessRef, eventType]
+      properties:
+        memberId: { type: string, format: uuid }
+        businessRef: { type: string }
+        eventType:
+          type: string
+          enum: [reserve_hold, checkin_commit, cancel_refund]
+    WriteOffEvent:
+      type: object
+      required: [id, memberId, eventType, traceId]
+      properties:
+        id: { type: string, format: uuid }
+        memberId: { type: string, format: uuid }
+        eventType: { type: string }
+        selectionBasis: { type: string }
+        traceId: { type: string }
+    TimelineEvent:
+      type: object
+      required: [action, occurredAt, result]
+      properties:
+        action: { type: string }
+        occurredAt: { type: string, format: date-time }
+        result:
+          type: string
+          enum: [success, rejected, failed]
+        traceId: { type: string }
