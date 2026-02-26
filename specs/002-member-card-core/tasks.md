@@ -11,11 +11,11 @@
 
 **Purpose**: Initialize frontend/backend workspaces and baseline toolchain.
 
-- [ ] T001 Create backend project skeleton and dependency groups in `backend/pyproject.toml`
-- [ ] T002 Create frontend Nuxt workspace and baseline config in `frontend/nuxt.config.ts`
-- [ ] T003 [P] Add local dev environment template for API/DB settings in `backend/.env.example`
-- [ ] T004 [P] Add backend test runner configuration for pytest markers and coverage in `backend/pytest.ini`
-- [ ] T005 [P] Add frontend test runner configuration for unit/e2e in `frontend/package.json`
+- [X] T001 Create backend project skeleton and dependency groups in `backend/pyproject.toml`
+- [X] T002 Create frontend Nuxt workspace and baseline config in `frontend/nuxt.config.ts`
+- [X] T003 [P] Add local dev environment template for API/DB settings in `backend/.env.example`
+- [X] T004 [P] Add backend test runner configuration for pytest markers and coverage in `backend/pytest.ini`
+- [X] T005 [P] Add frontend test runner configuration for unit/e2e in `frontend/package.json`
 
 ---
 
@@ -25,16 +25,16 @@
 
 **CRITICAL**: No user story work starts before this phase completes.
 
-- [ ] T006 Implement SQLAlchemy engine/session and unit-of-work bootstrap in `backend/app/infra/db/session.py`
-- [ ] T007 Create Alembic base migration for shared enums/extensions in `backend/alembic/versions/0001_base_foundation.py`
-- [ ] T008 [P] Implement request context + trace ID middleware in `backend/app/api/middleware/request_context.py`
-- [ ] T009 [P] Implement JWT auth dependency and role guard helpers in `backend/app/api/deps/auth.py`
-- [ ] T010 [P] Implement RBAC/ownership policy service for admin/coach/member in `backend/app/services/access_policy_service.py`
-- [ ] T011 Implement append-only audit logging service and repository in `backend/app/services/audit_log_service.py`
-- [ ] T012 Implement idempotency key persistence and replay service in `backend/app/services/idempotency_service.py`
-- [ ] T013 [P] Wire FastAPI router registry and global error handling in `backend/app/api/main.py`
-- [ ] T014 [P] Create generated API client wrapper for Nuxt BFF calls in `frontend/composables/useApiClient.ts`
-- [ ] T015 Add OpenAPI contract validation test harness against backend app in `backend/tests/contract/test_openapi_contract.py`
+- [X] T006 Implement SQLAlchemy engine/session and unit-of-work bootstrap in `backend/app/infra/db/session.py`
+- [X] T007 Create Alembic base migration for shared enums/extensions in `backend/alembic/versions/0001_base_foundation.py`
+- [X] T008 [P] Implement request context + trace ID middleware in `backend/app/api/middleware/request_context.py`
+- [X] T009 [P] Implement JWT auth dependency and role guard helpers in `backend/app/api/deps/auth.py`
+- [X] T010 [P] Implement RBAC/ownership policy service for admin/coach/member in `backend/app/services/access_policy_service.py`
+- [X] T011 Implement append-only audit logging service and repository in `backend/app/services/audit_log_service.py`
+- [X] T012 Implement idempotency key persistence and replay service in `backend/app/services/idempotency_service.py`
+- [X] T013 [P] Wire FastAPI router registry and global error handling in `backend/app/api/main.py`
+- [X] T014 [P] Create generated API client wrapper for Nuxt BFF calls in `frontend/composables/useApiClient.ts`
+- [X] T015 Add OpenAPI contract validation test harness against backend app in `backend/tests/contract/test_openapi_contract.py`
 
 **Checkpoint**: Foundation ready. User stories can be implemented independently.
 

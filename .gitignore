@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+dist/
+*.egg-info/
+
+# Node/Nuxt
+node_modules/
+.nuxt/
+.output/
+coverage/
+build/
+
+# Env and logs
+.env
+.env.*
+*.log
+
+# Editors and OS
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.vscode/
+.idea/
+
+# OpenCode runtime/cache/session artifacts
+.opencode/**
+
+# Keep reusable command specs versioned
+!.opencode/
+!.opencode/command/
+!.opencode/command/*.md
