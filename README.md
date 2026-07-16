@@ -58,23 +58,86 @@ specs/        # Spec-Kit artifacts (spec/plan/tasks/contracts/checklists)
 
 ## Quick Start
 
+### Prerequisites
+
+- Python 3.12 and [uv](https://docs.astral.sh/uv/)
+- Node.js 20 LTS and npm
+- PostgreSQL 16.x (PostgreSQL 16.11 is recommended)
+
+This project requires PostgreSQL. The migrations use PostgreSQL-specific UUID,
+JSONB and ENUM types, together with the `pgcrypto` and `uuid-ossp` extensions,
+so MySQL and SQLite cannot be used as drop-in replacements.
+
+Initialize PostgreSQL by following
+[Local Database Initialization](#local-database-initialization-postgresql)
+before starting the application.
+
+### Start the backend
+
+Open the first terminal from the repository root:
+
 ```bash
-# Backend
 cd backend
 uv venv
 source .venv/bin/activate
 uv sync
-pytest
 
-# Frontend
+# Create the local environment file once, then review DATABASE_URL and secrets.
+test -f .env || cp .env.example .env
+
+# Load environment variables and initialize the database.
+set -a
+source .env
+set +a
+alembic upgrade head
+python -m app.scripts.seed_users
+
+# Start FastAPI.
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Verify the backend after it starts:
+
+- Health check: <http://127.0.0.1:8000/healthz>
+- API documentation: <http://127.0.0.1:8000/docs>
+
+### Start the frontend
+
+Keep the backend running and open a second terminal from the repository root:
+
+```bash
 cd frontend
 npm install
 npm run dev
 ```
 
+Open <http://127.0.0.1:3000> and log in with the default local administrator
+account: `admin` / `admin123`.
+
+To run backend tests separately:
+
+```bash
+cd backend
+uv run pytest
+```
+
 ## Local Database Initialization (PostgreSQL)
 
-Use this section to prepare a local PostgreSQL database for backend development.
+### SQL requirements
+
+- PostgreSQL 16.x, listening on `localhost:5432` by default.
+- A UTF-8 database named `yoga_sys`.
+- A login role named `yoga`; its password must match `DATABASE_URL` in
+  `backend/.env`.
+- The `yoga` role must own the database, or have permission to create extensions,
+  ENUM types, tables and indexes in the `public` schema.
+- The PostgreSQL installation must provide the `pgcrypto` and `uuid-ossp`
+  extensions. Alembic enables them automatically during the first migration.
+
+Do not create application tables manually. Alembic owns the schema and creates
+all required tables, types, constraints and indexes.
+
+### Initialize the local database
 
 1) Enter PostgreSQL as an admin user:
 
@@ -82,7 +145,9 @@ Use this section to prepare a local PostgreSQL database for backend development.
 sudo -u postgres psql
 ```
 
-2) Create (or update) app role and database in psql:
+2) Create (or update) the application role and database in `psql`. Replace
+`YOUR_STRONG_PASSWORD` with a local password and reuse the same value in
+`backend/.env`:
 
 ```sql
 DO $$
@@ -106,10 +171,11 @@ GRANT ALL PRIVILEGES ON DATABASE yoga_sys TO yoga;
 PGPASSWORD="YOUR_STRONG_PASSWORD" psql -h localhost -U yoga -d yoga_sys -c "SELECT current_database(), current_user;"
 ```
 
-4) Create backend environment file:
+4) From the repository root, create the backend environment file if it does not
+already exist:
 
 ```bash
-cp backend/.env.example backend/.env
+test -f backend/.env || cp backend/.env.example backend/.env
 ```
 
 Set `DATABASE_URL` in `backend/.env` to:
@@ -118,10 +184,13 @@ Set `DATABASE_URL` in `backend/.env` to:
 DATABASE_URL=postgresql+psycopg://yoga:YOUR_STRONG_PASSWORD@localhost:5432/yoga_sys
 ```
 
-5) Run database migrations:
+5) Run all database migrations with the environment loaded:
 
 ```bash
 cd backend
+set -a
+source .env
+set +a
 uv run alembic upgrade head
 ```
 
@@ -131,7 +200,10 @@ uv run alembic upgrade head
 PGPASSWORD="YOUR_STRONG_PASSWORD" psql -h localhost -U yoga -d yoga_sys -c "SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name;"
 ```
 
-Expected foundation tables include `audit_log` and `idempotency_record`.
+Expected tables include `admin_user`, `audit_log`, `card_product`,
+`idempotency_record` and `member`. If migration reports a permission error,
+confirm that `yoga` owns `yoga_sys` and has `CREATE` permission on the `public`
+schema.
 
 ## Delivery Status
 

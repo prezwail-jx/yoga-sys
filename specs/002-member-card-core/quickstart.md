@@ -101,3 +101,42 @@ npm install @nuxt/ui
 - 所有场景预期结果满足。
 - 时间线可检索到购卡、续费、退款、预扣、实扣、返还、冻结、解冻全量记录。
 - 未出现越权成功、重复扣次、重复退款、链路乱序。
+
+## US1 当前可运行方式（2026-07-16）
+
+### 后端
+
+```bash
+cd backend
+uv sync
+alembic upgrade head
+python -m app.scripts.seed_users
+uvicorn app.main:app --reload
+```
+
+账号从 `.env` 读取；开发默认值为 `admin/admin123` 和 `coach/coach123`。生产环境必须替换 `JWT_SECRET` 和所有初始密码。
+
+### 前端
+
+```bash
+cd frontend
+npm install
+NUXT_BACKEND_BASE_URL=http://127.0.0.1:8000 npm run dev
+```
+
+访问 `http://127.0.0.1:3000/login`。会员和卡项通过 Nuxt BFF 使用真实后端；课表、私教和报表仍为 Mock。
+
+### US1 验证命令
+
+```bash
+cd backend
+uv run pytest -q
+
+cd ../frontend
+npm test
+npm run lint
+npm run typecheck
+npm run build
+```
+
+Testcontainers 无法访问宿主映射端口的受限环境，可设置 `TEST_DATABASE_URL`，并在与 PostgreSQL 相同的 Docker 网络中执行 pytest。上文场景 3–7 属于 US2/US3，尚未在本轮交付。

@@ -8,28 +8,21 @@ type ApiRequestOptions = {
 }
 
 function createIdempotencyKey(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID()
-  }
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  return crypto.randomUUID()
 }
 
 export function useApiClient() {
   const request = async <T>(path: string, options: ApiRequestOptions = {}): Promise<T> => {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    }
-
+    const headers: Record<string, string> = { ...(options.headers || {}) }
     if (options.withIdempotency) {
-      headers["Idempotency-Key"] = headers["Idempotency-Key"] || createIdempotencyKey()
+      headers["Idempotency-Key"] ||= createIdempotencyKey()
     }
-
-    return await $fetch<T>(`/api${path}`, {
+    const result = await $fetch(`/api${path}`, {
       method: options.method || "GET",
-      body: options.body,
+      body: options.body as Record<string, unknown> | undefined,
       headers,
     })
+    return result as T
   }
 
   return { request }

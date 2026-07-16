@@ -48,30 +48,33 @@
 
 ### Tests for User Story 1 (MANDATORY)
 
-- [ ] T016 [P] [US1] Add normal-flow acceptance tests for member/card-product create and query in `backend/tests/integration/test_us1_normal_member_cardproduct.py`
-- [ ] T017 [P] [US1] Add boundary-flow acceptance tests for disabled member booking guard in `backend/tests/integration/test_us1_boundary_member_status.py`
-- [ ] T018 [P] [US1] Add exception-flow acceptance tests for coach unauthorized write attempts in `backend/tests/integration/test_us1_exception_rbac.py`
-- [ ] T019 [US1] Map US1 tests to spec acceptance and PRD rows in `specs/002-member-card-core/checklists/acceptance-traceability.md`
+- [X] T016 [P] [US1] Add normal-flow acceptance tests for member/card-product create and query in `backend/tests/integration/test_us1_normal_member_cardproduct.py`
+- [X] T017 [P] [US1] Add boundary-flow acceptance tests for disabled member booking guard in `backend/tests/integration/test_us1_boundary_member_status.py`
+- [X] T018 [P] [US1] Add exception-flow acceptance tests for coach unauthorized write attempts in `backend/tests/integration/test_us1_exception_rbac.py`
+- [X] T019 [US1] Map US1 tests to spec acceptance and PRD rows in `specs/002-member-card-core/checklists/acceptance-traceability.md`
 
 ### Implementation for User Story 1
 
-- [ ] T020 [P] [US1] Implement Member ORM model with soft-delete/status fields in `backend/app/domain/member.py`
-- [ ] T021 [P] [US1] Implement CardProduct ORM model with core rule fields in `backend/app/domain/card_product.py`
-- [ ] T022 [US1] Implement member repository methods for CRUD and status transition in `backend/app/repositories/member_repository.py`
-- [ ] T023 [US1] Implement card product repository methods for template management in `backend/app/repositories/card_product_repository.py`
-- [ ] T024 [US1] Implement member application service with ownership and soft-delete rules in `backend/app/services/member_service.py`
-- [ ] T025 [US1] Implement card product application service with field validation rules in `backend/app/services/card_product_service.py`
-- [ ] T026 [US1] Implement members API endpoints (`POST/PATCH/DELETE /members/{id}`) in `backend/app/api/routes/members.py`
-- [ ] T027 [US1] Implement card-products API endpoint (`POST /card-products`) in `backend/app/api/routes/card_products.py`
-- [ ] T028 [P] [US1] Build Nuxt member list/form page with admin-only actions in `frontend/pages/members/index.vue`
-- [ ] T029 [P] [US1] Build Nuxt card product creation page with rule fields in `frontend/pages/card-products/index.vue`
-- [ ] T030 [US1] Add frontend route middleware checks for US1 admin pages in `frontend/middleware/require-admin.ts`
+- [X] T020 [P] [US1] Implement Member ORM model with soft-delete/status fields in `backend/app/domain/member.py`
+- [X] T021 [P] [US1] Implement CardProduct ORM model with core rule fields in `backend/app/domain/card_product.py`
+- [X] T022 [US1] Implement member repository methods for CRUD and status transition in `backend/app/repositories/member.py`
+- [X] T023 [US1] Implement card product repository methods for template management in `backend/app/repositories/card_product.py`
+- [X] T024 [US1] Implement member application service with ownership and soft-delete rules in `backend/app/services/member.py`
+- [X] T025 [US1] Implement card product application service with field validation rules in `backend/app/services/card_product.py`
+- [X] T026 [US1] Implement members API endpoints (`POST/PATCH/DELETE /members/{id}`) in `backend/app/api/endpoints/members.py`
+- [X] T027 [US1] Implement card-products API endpoint (`POST /card-products`) in `backend/app/api/endpoints/card_products.py`
+- [X] T028 [P] [US1] Build Nuxt member list/form page with admin-only actions in `frontend/pages/members.vue`
+- [X] T029 [P] [US1] Build Nuxt card product creation page with rule fields in `frontend/pages/cards.vue`
+- [X] T030 [US1] Add frontend route middleware checks for US1 admin pages in `frontend/middleware/require-admin.ts`
 
 **Checkpoint**: User Story 1 is independently functional and testable (MVP).
 
 ---
 
-## Phase 4: User Story 2 - 管理员办理卡项交易与状态变更 (Priority: P2)
+#
+
+
+# Phase 4: User Story 2 - 管理员办理卡项交易与状态变更 (Priority: P2)
 
 **Goal**: 管理员可完成购卡/续费/补卡/退款、冻结/解冻/延期、过期提醒，并保证幂等与并发安全。
 
@@ -79,24 +82,24 @@
 
 ### Tests for User Story 2 (MANDATORY)
 
-- [ ] T031 [P] [US2] Add normal-flow acceptance tests for purchase/renew/freeze/unfreeze lifecycle in `backend/tests/integration/test_us2_normal_transactions.py`
-- [ ] T032 [P] [US2] Add boundary-flow acceptance tests for expiry reminder and freeze extension logic in `backend/tests/integration/test_us2_boundary_expiry_freeze.py`
-- [ ] T033 [P] [US2] Add exception-flow acceptance tests for idempotent refund replay in `backend/tests/integration/test_us2_exception_idempotent_refund.py`
-- [ ] T034 [US2] Map US2 tests to spec acceptance and PRD rows in `specs/002-member-card-core/checklists/acceptance-traceability.md`
+- [X] T031 [P] [US2] Add normal-flow acceptance tests for purchase/renew/freeze/unfreeze lifecycle in `backend/tests/integration/test_us2_normal_transactions.py`
+- [X] T032 [P] [US2] Add boundary-flow acceptance tests for expiry reminder and freeze extension logic in `backend/tests/integration/test_us2_boundary_expiry_freeze.py`
+- [X] T033 [P] [US2] Add exception-flow acceptance tests for idempotent refund replay in `backend/tests/integration/test_us2_exception_idempotent_refund.py`
+- [X] T034 [US2] Map US2 tests to spec acceptance and PRD rows in `specs/002-member-card-core/checklists/acceptance-traceability.md`
 
 ### Implementation for User Story 2
 
-- [ ] T035 [P] [US2] Implement MemberCard ORM model with freeze/expiry/reminder fields in `backend/app/domain/member_card.py`
-- [ ] T036 [P] [US2] Implement CardTransaction ORM model with idempotency and trace fields in `backend/app/domain/card_transaction.py`
-- [ ] T037 [US2] Implement member card repository with FEFO candidate queries and row locks in `backend/app/repositories/member_card_repository.py`
-- [ ] T038 [US2] Implement transaction repository with unique idempotency persistence in `backend/app/repositories/transaction_repository.py`
-- [ ] T039 [US2] Implement transaction service for purchase/renew/reissue/refund flows in `backend/app/services/transaction_service.py`
-- [ ] T040 [US2] Implement card lifecycle service for freeze/unfreeze/extend/reminder calculation in `backend/app/services/member_card_lifecycle_service.py`
-- [ ] T041 [US2] Implement transactions API endpoint (`POST /transactions`) with idempotency handling in `backend/app/api/routes/transactions.py`
-- [ ] T042 [US2] Implement member-card lifecycle endpoints (`POST /member-cards/{id}/freeze|unfreeze`) in `backend/app/api/routes/member_cards.py`
-- [ ] T043 [P] [US2] Build Nuxt transaction operation page for purchase/renew/refund actions in `frontend/pages/transactions/index.vue`
-- [ ] T044 [P] [US2] Build Nuxt member-card lifecycle controls for freeze/unfreeze/expiry badges in `frontend/components/member-cards/MemberCardLifecyclePanel.vue`
-- [ ] T045 [US2] Add duplicate-submit protection and idempotency-key generation in `frontend/composables/useIdempotentSubmit.ts`
+- [X] T035 [P] [US2] Implement MemberCard ORM model with freeze/expiry/reminder fields in `backend/app/domain/member_card.py`
+- [X] T036 [P] [US2] Implement CardTransaction ORM model with idempotency and trace fields in `backend/app/domain/card_transaction.py`
+- [X] T037 [US2] Implement member card repository with FEFO candidate queries and row locks in `backend/app/repositories/member_card_repository.py`
+- [X] T038 [US2] Implement transaction repository with unique idempotency persistence in `backend/app/repositories/transaction_repository.py`
+- [X] T039 [US2] Implement transaction service for purchase/renew/reissue/refund flows in `backend/app/services/transaction_service.py`
+- [X] T040 [US2] Implement card lifecycle service for freeze/unfreeze/extend/reminder calculation in `backend/app/services/member_card_lifecycle_service.py`
+- [X] T041 [US2] Implement transactions API endpoint (`POST /transactions`) with idempotency handling in `backend/app/api/endpoints/transactions.py`
+- [X] T042 [US2] Implement member-card lifecycle endpoints (`POST /member-cards/{id}/freeze|unfreeze`) in `backend/app/api/endpoints/member_cards.py`
+- [X] T043 [P] [US2] Build Nuxt transaction operation page for purchase/renew/refund actions in `frontend/pages/transactions/index.vue`
+- [X] T044 [P] [US2] Build Nuxt member-card lifecycle controls for freeze/unfreeze/expiry badges in `frontend/components/member-cards/MemberCardLifecyclePanel.vue`
+- [X] T045 [US2] Add duplicate-submit protection and idempotency-key generation in `frontend/composables/useIdempotentSubmit.ts`
 
 **Checkpoint**: User Stories 1 and 2 both work independently.
 
@@ -244,6 +247,6 @@ pnpm --dir frontend test -- writeoff-chain
 
 ## Notes
 
-- All tasks use checklist format: `- [ ] Txxx [P] [USx] Description with file path`.
+- All tasks use checklist format: `- [X] Txxx [P] [USx] Description with file path`.
 - `[USx]` labels are applied only to user-story tasks.
 - Each story has explicit independent test criteria and acceptance traceability updates.

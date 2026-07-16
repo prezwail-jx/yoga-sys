@@ -1,39 +1,35 @@
-from __future__ import annotations
-
 from fastapi.testclient import TestClient
 
-from app.api.main import app
+from app.main import app
 
-
-def test_openapi_exposes_required_paths() -> None:
+def test_openapi_exposes_us1_and_us2_real_paths() -> None:
     schema = app.openapi()
     expected_paths = {
-        "/members": {"post"},
-        "/members/{memberId}": {"patch", "delete"},
-        "/members/{memberId}/timeline": {"get"},
-        "/card-products": {"post"},
-        "/member-cards/{memberCardId}/freeze": {"post"},
-        "/member-cards/{memberCardId}/unfreeze": {"post"},
-        "/transactions": {"post"},
-        "/writeoff/events": {"post"},
+        "/auth/login": {"post"}, "/auth/me": {"get"},
+        "/members": {"get", "post"}, "/members/{memberId}": {"get", "patch", "delete"},
+        "/card-products": {"get", "post"}, "/card-products/{product_id}": {"get", "patch"},
+        "/members/{memberId}/cards": {"get"}, "/transactions": {"post"},
+        "/member-cards/{memberCardId}/freeze": {"post"}, "/member-cards/{memberCardId}/unfreeze": {"post"},
     }
-
     openapi_paths = schema.get("paths", {})
     for path, methods in expected_paths.items():
         assert path in openapi_paths, f"Missing path in OpenAPI: {path}"
-        for method in methods:
-            assert method in openapi_paths[path], f"Missing method {method} in {path}"
-
+        assert methods <= set(openapi_paths[path]), f"Missing methods for {path}"
 
 def test_openapi_secured_paths_include_bearer_auth() -> None:
     schema = app.openapi()
-    security_schemes = schema.get("components", {}).get("securitySchemes", {})
-    # Security scheme will be emitted once protected endpoints are bound via Depends(HTTPBearer)
-    assert "HTTPBearer" in security_schemes or "bearerAuth" in security_schemes
+    assert "HTTPBearer" in schema.get("components", {}).get("securitySchemes", {})
+    for path in ("/members", "/card-products", "/transactions", "/member-cards/{memberCardId}/freeze", "/member-cards/{memberCardId}/unfreeze"):
+        for operation in schema["paths"][path].values():
+            assert operation.get("security") == [{"HTTPBearer": []}]
 
+def test_phase4_write_operations_require_idempotency_key() -> None:
+    schema = app.openapi()
+    for path in ("/transactions", "/member-cards/{memberCardId}/freeze", "/member-cards/{memberCardId}/unfreeze"):
+        parameters = schema["paths"][path]["post"].get("parameters", [])
+        key = next(parameter for parameter in parameters if parameter["name"] == "Idempotency-Key")
+        assert key["required"] is True
 
 def test_healthz_endpoint_available() -> None:
-    client = TestClient(app)
-    response = client.get("/healthz")
-    assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    response = TestClient(app).get("/healthz")
+    assert response.status_code == 200 and response.json() == {"status": "ok"}

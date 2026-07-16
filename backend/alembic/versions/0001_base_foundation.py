@@ -18,11 +18,20 @@ branch_labels = None
 depends_on = None
 
 
-operator_role = sa.Enum(
-    "admin", "coach", "member", "system", name="operator_role", native_enum=True
+operator_role = postgresql.ENUM(
+    "admin",
+    "coach",
+    "member",
+    "system",
+    name="operator_role",
+    create_type=False,
 )
-audit_result = sa.Enum(
-    "success", "rejected", "failed", name="audit_result", native_enum=True
+audit_result = postgresql.ENUM(
+    "success",
+    "rejected",
+    "failed",
+    name="audit_result",
+    create_type=False,
 )
 
 
