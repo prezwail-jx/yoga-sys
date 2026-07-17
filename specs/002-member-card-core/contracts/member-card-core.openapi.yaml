@@ -84,11 +84,18 @@ paths:
                   total: { type: integer }
   /members/{memberId}/timeline:
     get:
-      tags: [Audit]
+      tags: [Timeline]
       summary: Query member timeline records
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/MemberId'
+        - { name: category, in: query, schema: { type: string, enum: [all, transaction, writeoff, audit], default: all } }
+        - { name: action, in: query, schema: { type: string } }
+        - { name: dateFrom, in: query, schema: { type: string, format: date } }
+        - { name: dateTo, in: query, schema: { type: string, format: date } }
+        - { name: businessRef, in: query, schema: { type: string, maxLength: 128 } }
+        - { name: skip, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
       responses:
         '200':
           description: Timeline returned
@@ -96,11 +103,15 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [items, total, skip, limit]
                 properties:
                   items:
                     type: array
                     items:
                       $ref: '#/components/schemas/TimelineEvent'
+                  total: { type: integer }
+                  skip: { type: integer }
+                  limit: { type: integer }
         '403': { description: Forbidden }
   /card-products:
     post:
@@ -174,7 +185,7 @@ paths:
     post:
       tags: [WriteOff]
       summary: Apply write-off event
-      description: "Unified lifecycle: reserve_hold -> checkin_commit -> cancel_refund"
+      description: "Unified lifecycle: reserve_hold -> checkin_commit | cancel_refund | absence_commit"
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -320,23 +331,36 @@ components:
         businessRef: { type: string }
         eventType:
           type: string
-          enum: [reserve_hold, checkin_commit, cancel_refund]
+          enum: [reserve_hold, checkin_commit, cancel_refund, absence_commit]
     WriteOffEvent:
       type: object
-      required: [id, memberId, eventType, traceId]
+      required: [id, memberId, memberCardId, eventType, businessRef, sequenceNo, timesDelta, traceId]
       properties:
         id: { type: string, format: uuid }
         memberId: { type: string, format: uuid }
-        eventType: { type: string }
+        memberCardId: { type: string, format: uuid }
+        previousEventId: { type: string, format: uuid, nullable: true }
+        eventType: { type: string, enum: [reserve_hold, checkin_commit, cancel_refund, absence_commit] }
+        businessRef: { type: string }
+        sequenceNo: { type: integer, enum: [1, 2] }
+        timesDelta: { type: integer }
         selectionBasis: { type: string }
         traceId: { type: string }
     TimelineEvent:
       type: object
-      required: [action, occurredAt, result]
+      required: [id, source, action, occurredAt, result, summary]
       properties:
+        id: { type: string, format: uuid }
+        source: { type: string, enum: [transaction, writeoff, audit] }
         action: { type: string }
         occurredAt: { type: string, format: date-time }
         result:
           type: string
           enum: [success, rejected, failed]
         traceId: { type: string }
+        productName: { type: string, nullable: true }
+        cardType: { type: string, nullable: true }
+        amount: { type: number, nullable: true }
+        timesDelta: { type: integer, nullable: true }
+        validDaysDelta: { type: integer, nullable: true }
+        reason: { type: string, nullable: true }

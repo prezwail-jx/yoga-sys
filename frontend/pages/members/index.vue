@@ -137,6 +137,7 @@ async function removeMember(member: Member) {
             <td><span class="status-badge">{{ member.status }}</span></td>
             <td>{{ member.joinDate }}</td>
             <td class="actions">
+              <NuxtLink class="button-secondary record-link" :to="`/members/${member.id}/timeline`">业务记录</NuxtLink>
               <button class="button-secondary" type="button" @click="openEdit(member)">编辑</button>
               <button v-if="member.status === 'normal'" class="button-secondary" type="button" @click="changeStatus(member, 'paused')">暂停</button>
               <button v-if="member.status === 'paused'" class="button-secondary" type="button" @click="changeStatus(member, 'normal')">恢复</button>

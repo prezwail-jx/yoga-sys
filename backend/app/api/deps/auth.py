@@ -13,6 +13,7 @@ bearer = HTTPBearer(auto_error=True)
 class CurrentUser:
     user_id: str
     role: str
+    member_id: str | None = None
 
 
 def get_current_user(
@@ -31,7 +32,10 @@ def get_current_user(
     user_id = payload.get("sub")
     if role not in {"admin", "coach", "member"} or not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
-    user = CurrentUser(user_id=str(user_id), role=str(role))
+    member_id = payload.get("memberId")
+    if role == "member" and not member_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Member token is missing memberId")
+    user = CurrentUser(user_id=str(user_id), role=str(role), member_id=str(member_id) if member_id else None)
     request.state.current_user = user
     return user
 

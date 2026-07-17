@@ -7,6 +7,7 @@ export type CourseScope = "group" | "private" | "specific"
 export interface CurrentUser {
   username: string
   role: UserRole
+  memberId?: string | null
 }
 
 export interface Member {
@@ -181,4 +182,58 @@ export interface TransactionInput {
   originTransactionId?: string
   validDaysDelta?: number
   reason?: string
+}
+
+export type TimelineCategory = "all" | "transaction" | "writeoff" | "audit"
+export type WriteOffEventType = "reserve_hold" | "checkin_commit" | "cancel_refund" | "absence_commit"
+
+export interface TimelineEvent {
+  id: string
+  source: "transaction" | "writeoff" | "audit"
+  action: string
+  result: "success" | "rejected" | "failed"
+  occurredAt: string
+  traceId: string
+  memberCardId: string | null
+  businessRef: string | null
+  sequenceNo: number | null
+  timesDelta: number | null
+  amount: string | null
+  productName: string | null
+  cardType: CardType | null
+  validDaysDelta: number | null
+  reason: string | null
+  operatorId: string | null
+  operatorRole: UserRole | "system" | null
+  objectType: string | null
+  objectId: string | null
+  summary: string
+}
+
+export interface TimelineList { items: TimelineEvent[]; total: number; skip: number; limit: number }
+export interface TimelineQuery {
+  category?: TimelineCategory
+  action?: string
+  dateFrom?: string
+  dateTo?: string
+  businessRef?: string
+  skip?: number
+  limit?: number
+}
+
+export interface WriteOffEvent {
+  id: string
+  memberId: string
+  memberCardId: string
+  previousEventId: string | null
+  eventType: WriteOffEventType
+  businessRef: string
+  sequenceNo: number
+  timesDelta: number
+  selectionBasis: string
+  idempotencyKey: string
+  traceId: string
+  operatorId: string
+  operatorRole: UserRole | "system"
+  occurredAt: string
 }

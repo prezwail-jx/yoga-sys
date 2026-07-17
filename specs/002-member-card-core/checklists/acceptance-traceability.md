@@ -1,4 +1,4 @@
-# US1/US2 验收追踪矩阵
+# US1/US2/US3 验收追踪矩阵
 
 | 验收场景 | PRD/Spec | 任务 | 自动化证据 |
 |---|---|---|---|
@@ -13,6 +13,10 @@
 | 退款重放不重复变更权益 | US2-AS4、FR-010、SC-003 | T033、T036、T038、T039、T041、T045 | `test_refund_replay_returns_same_transaction_without_second_mutation` |
 | 同幂等键不同请求被拒绝 | CA-003、FR-010 | T033、T038、T041 | `test_same_idempotency_key_with_different_payload_returns_conflict` |
 | 教练办理交易被拒绝 | CA-001、FR-008/009 | T033、T041 | `test_coach_cannot_create_transaction` |
+| 管理员查看会员交易与核销时间线 | US3-AS1、FR-007/009 | T046、T054、T056、T057 | `test_admin_replays_purchase_reserve_and_checkin_chain_from_timeline` |
+| 预扣、签到、取消与缺勤链路可关联 | US3-AS2、FR-006/010、CA-002/003/004 | T046、T050-T055、T058 | `test_admin_replays_purchase_reserve_and_checkin_chain_from_timeline`、`test_terminal_events_are_mutually_exclusive` |
+| 同日多事件稳定排序且不丢失 | US3-AS3、FR-007 | T047、T051、T054 | `test_same_day_cancel_rebook_and_absence_are_stably_ordered` |
+| 会员跨会员读取被拒绝并审计 | US3-AS4、FR-008/009、CA-001/004 | T048、T054、T056 | `test_member_can_read_self_but_not_another_member_and_denial_is_audited` |
 
 ## 验收环境
 

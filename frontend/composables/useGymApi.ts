@@ -1,4 +1,4 @@
-import type { BookingRecord, CardProduct, CardProductInput, CardProductList, CoachSlot, CourseSession, Member, MemberCardList, MemberInput, MemberList, MemberStatus, ReportSummary, TransactionInput, TransactionOperation } from "~/types/domain"
+import type { BookingRecord, CardProduct, CardProductInput, CardProductList, CoachSlot, CourseSession, Member, MemberCardList, MemberInput, MemberList, MemberStatus, ReportSummary, TimelineList, TimelineQuery, TransactionInput, TransactionOperation, WriteOffEvent, WriteOffEventType } from "~/types/domain"
 
 export function useGymApi() {
   const { request } = useApiClient()
@@ -15,9 +15,11 @@ export function useGymApi() {
   const createTransaction = (payload: TransactionInput, key: string) => request<TransactionOperation>("/transactions", { method: "POST", body: payload, headers: { "Idempotency-Key": key } })
   const freezeMemberCard = (id: string, payload: { frozenUntil: string; reason: string }, key: string) => request<TransactionOperation>(`/member-cards/${id}/freeze`, { method: "POST", body: payload, headers: { "Idempotency-Key": key } })
   const unfreezeMemberCard = (id: string, payload: { reason?: string }, key: string) => request<TransactionOperation>(`/member-cards/${id}/unfreeze`, { method: "POST", body: payload, headers: { "Idempotency-Key": key } })
+  const getMemberTimeline = (memberId: string, params: TimelineQuery = {}) => request<TimelineList>(`/members/${memberId}/timeline?${new URLSearchParams(Object.entries(params).filter(([, value]) => value !== undefined && value !== "").map(([key, value]) => [key, String(value)]))}`)
+  const createWriteOffEvent = (payload: { memberId: string; businessRef: string; eventType: WriteOffEventType }, key: string) => request<WriteOffEvent>("/writeoff/events", { method: "POST", body: payload, headers: { "Idempotency-Key": key } })
   const getSchedule = () => request<CourseSession[]>("/schedule")
   const getPrivateSlots = () => request<CoachSlot[]>("/private-slots")
   const getBookings = () => request<BookingRecord[]>("/bookings")
   const getReportSummary = () => request<ReportSummary>("/reports/summary")
-  return { getMeta, getMembers, getMember, createMember, updateMember, deleteMember, getCards, createCard, updateCard, getMemberCards, createTransaction, freezeMemberCard, unfreezeMemberCard, getSchedule, getPrivateSlots, getBookings, getReportSummary }
+  return { getMeta, getMembers, getMember, createMember, updateMember, deleteMember, getCards, createCard, updateCard, getMemberCards, createTransaction, freezeMemberCard, unfreezeMemberCard, getMemberTimeline, createWriteOffEvent, getSchedule, getPrivateSlots, getBookings, getReportSummary }
 }

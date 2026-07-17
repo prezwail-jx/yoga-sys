@@ -113,22 +113,22 @@
 
 ### Tests for User Story 3 (MANDATORY)
 
-- [ ] T046 [P] [US3] Add normal-flow acceptance tests for member timeline queries and write-off linkage in `backend/tests/integration/test_us3_normal_timeline.py`
-- [ ] T047 [P] [US3] Add boundary-flow acceptance tests for same-day multi-event ordering in `backend/tests/integration/test_us3_boundary_timeline_order.py`
-- [ ] T048 [P] [US3] Add exception-flow acceptance tests for cross-member read denial in `backend/tests/integration/test_us3_exception_cross_member_access.py`
-- [ ] T049 [US3] Map US3 tests to spec acceptance and PRD rows in `specs/002-member-card-core/checklists/acceptance-traceability.md`
+- [X] T046 [P] [US3] Add normal-flow acceptance tests for member timeline queries and write-off linkage in `backend/tests/integration/test_us3_normal_timeline.py`
+- [X] T047 [P] [US3] Add boundary-flow acceptance tests for same-day multi-event ordering in `backend/tests/integration/test_us3_boundary_timeline_order.py`
+- [X] T048 [P] [US3] Add exception-flow acceptance tests for cross-member read denial in `backend/tests/integration/test_us3_exception_cross_member_access.py`
+- [X] T049 [US3] Map US3 tests to spec acceptance and PRD rows in `specs/002-member-card-core/checklists/acceptance-traceability.md`
 
 ### Implementation for User Story 3
 
-- [ ] T050 [P] [US3] Implement WriteOffEvent ORM model with lifecycle sequencing fields in `backend/app/domain/writeoff_event.py`
-- [ ] T051 [P] [US3] Implement timeline projection query model for mixed event stream in `backend/app/domain/member_timeline_view.py`
-- [ ] T052 [US3] Implement write-off repository with lifecycle transition validation in `backend/app/repositories/writeoff_repository.py`
-- [ ] T053 [US3] Implement write-off service for `reserve_hold -> checkin_commit -> cancel_refund` chain in `backend/app/services/writeoff_service.py`
-- [ ] T054 [US3] Implement timeline query service aggregating transaction/write-off/audit logs in `backend/app/services/member_timeline_service.py`
-- [ ] T055 [US3] Implement write-off events API endpoint (`POST /writeoff/events`) in `backend/app/api/routes/writeoff.py`
-- [ ] T056 [US3] Implement member timeline API endpoint (`GET /members/{id}/timeline`) with role scoping in `backend/app/api/routes/timeline.py`
-- [ ] T057 [P] [US3] Build Nuxt member timeline page with filters and chronological stream in `frontend/pages/members/[memberId]/timeline.vue`
-- [ ] T058 [P] [US3] Build write-off chain detail drawer component for pre-deduct/commit/refund links in `frontend/components/timeline/WriteoffChainDrawer.vue`
+- [X] T050 [P] [US3] Implement WriteOffEvent ORM model with lifecycle sequencing fields in `backend/app/domain/writeoff_event.py`
+- [X] T051 [P] [US3] Implement timeline projection query model for mixed event stream in `backend/app/domain/member_timeline_view.py`
+- [X] T052 [US3] Implement write-off repository with lifecycle transition validation in `backend/app/repositories/writeoff_repository.py`
+- [X] T053 [US3] Implement write-off service for `reserve_hold -> checkin_commit -> cancel_refund` chain in `backend/app/services/writeoff_service.py`
+- [X] T054 [US3] Implement timeline query service aggregating transaction/write-off/audit logs in `backend/app/services/member_timeline_service.py`
+- [X] T055 [US3] Implement write-off events API endpoint (`POST /writeoff/events`) in `backend/app/api/routes/writeoff.py`
+- [X] T056 [US3] Implement member timeline API endpoint (`GET /members/{id}/timeline`) with role scoping in `backend/app/api/routes/timeline.py`
+- [X] T057 [P] [US3] Build Nuxt member timeline page with filters and chronological stream in `frontend/pages/members/[memberId]/timeline.vue`
+- [X] T058 [P] [US3] Build write-off chain detail drawer component for pre-deduct/commit/refund links in `frontend/components/timeline/WriteoffChainDrawer.vue`
 
 **Checkpoint**: All user stories are independently functional.
 

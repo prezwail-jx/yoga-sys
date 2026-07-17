@@ -3,6 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.api.endpoints import auth, card_products, member_cards, members, transactions
+from app.api.routes import timeline, writeoff
 from app.api.middleware.audit_rejections import RejectedAuditMiddleware
 from app.api.middleware.request_context import RequestContextMiddleware
 
@@ -22,5 +23,7 @@ def create_app() -> FastAPI:
     app.include_router(card_products.router, prefix="/card-products", tags=["Card Products"])
     app.include_router(transactions.router, tags=["Transactions"])
     app.include_router(member_cards.router, tags=["Member Cards"])
+    app.include_router(writeoff.router, tags=["WriteOff"])
+    app.include_router(timeline.router, tags=["Timeline"])
     return app
 app = create_app()

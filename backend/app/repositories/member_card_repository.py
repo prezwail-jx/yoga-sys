@@ -31,16 +31,20 @@ class MemberCardRepository:
     def list_by_member(self, member_id: UUID) -> list[MemberCard]:
         return list(self.session.scalars(select(MemberCard).where(MemberCard.member_id == member_id).order_by(MemberCard.created_at.desc())).all())
 
-    def list_fefo_candidates(self, member_id: UUID, today: date, *, for_update: bool = False) -> list[MemberCard]:
+    def list_fefo_candidates(self, member_id: UUID, today: date, *, for_update: bool = False, include_pending: bool = False) -> list[MemberCard]:
+        statuses = ["active"]
+        if include_pending:
+            statuses.append("pending_activation")
         stmt = (
             select(MemberCard)
             .where(
                 MemberCard.member_id == member_id,
-                MemberCard.status == "active",
+                MemberCard.status.in_(statuses),
                 or_(MemberCard.expires_on.is_(None), MemberCard.expires_on >= today),
                 or_(MemberCard.remaining_times.is_(None), MemberCard.remaining_times > 0),
             )
             .order_by(
+                case((MemberCard.status == "pending_activation", 1), else_=0),
                 case((MemberCard.expires_on.is_(None), 1), else_=0),
                 MemberCard.expires_on.asc(),
                 MemberCard.opened_on.asc(),

@@ -9,7 +9,7 @@ class AccessPolicyService:
     def assert_member_readable(self, actor: CurrentUser, member_id: str) -> None:
         if actor.role == "admin":
             return
-        if actor.role == "member" and actor.member_id == member_id:
+        if actor.role == "member" and actor.member_id == str(member_id):
             return
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 

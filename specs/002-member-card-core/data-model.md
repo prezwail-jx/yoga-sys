@@ -91,9 +91,11 @@
 - `id` (UUID, PK)
 - `member_id` (FK -> Member.id)
 - `member_card_id` (FK -> MemberCard.id)
-- `event_type` (enum: reserve_hold/checkin_commit/cancel_refund)
+- `event_type` (enum: reserve_hold/checkin_commit/cancel_refund/absence_commit)
 - `business_ref` (string) // 预约单号/签到单号
-- `times_delta` (int) // 预扣/实扣为负，返还为正
+- `sequence_no` (int: 1/2) // 预扣为 1，终态为 2
+- `previous_event_id` (FK -> WriteOffEvent.id, nullable) // 终态引用预扣
+- `times_delta` (int) // 预扣为 -1；签到确认通常为 0；取消/缺勤返还为 +1
 - `selection_basis` (string) // FEFO 命中说明
 - `idempotency_key` (string)
 - `trace_id` (string)
@@ -103,7 +105,7 @@
 
 ### Rules
 - 同 `business_ref + event_type` 唯一，保证重复签到/取消幂等。
-- 仅允许链路顺序：`reserve_hold` -> `checkin_commit` 或 `cancel_refund`。
+- 仅允许链路顺序：`reserve_hold` -> `checkin_commit`、`cancel_refund` 或 `absence_commit`（三种终态互斥）。
 
 ## 6) AuditLog（操作审计日志）
 
