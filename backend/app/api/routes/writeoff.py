@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import CurrentUser, get_current_admin
 from app.api.deps.business_clock import get_business_today
 from app.infra.db.session import get_session
+from app.infra.observability import business_span
 from app.repositories.member import MemberRepository
 from app.repositories.member_card_repository import MemberCardRepository
 from app.repositories.writeoff_repository import WriteOffRepository
@@ -34,10 +35,11 @@ def create_writeoff_event(
     if replay.hit:
         return JSONResponse(status_code=replay.response_code, content=replay.response_body)
     service = WriteOffService(session, MemberRepository(session), MemberCardRepository(session), WriteOffRepository(session))
-    event = service.apply(
-        member_id=payload.member_id, business_ref=payload.business_ref, event_type=payload.event_type,
-        user=user, idempotency_key=idempotency_key, trace_id=request.state.trace_id, today=today,
-    )
+    with business_span("writeoff.apply", business_action=payload.event_type, member_id=payload.member_id, actor_role=user.role):
+        event = service.apply(
+            member_id=payload.member_id, business_ref=payload.business_ref, event_type=payload.event_type,
+            user=user, idempotency_key=idempotency_key, trace_id=request.state.trace_id, today=today,
+        )
     body = WriteOffEventResponse.model_validate(event).model_dump(mode="json", by_alias=True)
     idempotency.persist(
         scope="writeoff-events", actor_id=user.user_id, idempotency_key=idempotency_key,

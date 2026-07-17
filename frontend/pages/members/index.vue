@@ -125,9 +125,8 @@ async function removeMember(member: Member) {
     </div>
 
     <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-    <p v-if="error" class="error-message">加载失败：{{ error.statusMessage }}</p>
-    <p v-else-if="status === 'pending'" class="hint">正在加载会员…</p>
-    <div v-else class="table-wrap">
+    <CommonAsyncState :status="status" :empty="!data?.items.length" pending-text="正在加载会员…" empty-text="暂无符合条件的会员" :error-message="error?.statusMessage || '会员加载失败'" @retry="refresh">
+    <div class="table-wrap">
       <table>
         <thead><tr><th>姓名</th><th>手机号</th><th>状态</th><th>入会日期</th><th>操作</th></tr></thead>
         <tbody>
@@ -145,10 +144,10 @@ async function removeMember(member: Member) {
               <button class="button-danger" type="button" @click="removeMember(member)">归档</button>
             </td>
           </tr>
-          <tr v-if="!data?.items.length"><td colspan="5" class="empty-state">暂无符合条件的会员</td></tr>
         </tbody>
       </table>
     </div>
+    </CommonAsyncState>
 
     <div class="pagination">
       <button class="button-secondary" type="button" :disabled="skip === 0" @click="skip = Math.max(0, skip - limit)">上一页</button>

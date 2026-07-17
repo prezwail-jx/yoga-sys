@@ -11,13 +11,21 @@ const selectedProductId = ref("")
 const message = ref("")
 const errorMessage = ref("")
 
-const { data: members } = await useAsyncData("transaction-members", () => api.getMembers({ limit: 100 }))
-const { data: products } = await useAsyncData("transaction-products", () => api.getCards({ enabled: true, limit: 100 }))
-const { data: cards, refresh: refreshCards, status: cardsStatus } = await useAsyncData(
+const { data: members, status: membersStatus, error: membersError, refresh: refreshMembers } = await useAsyncData("transaction-members", () => api.getMembers({ limit: 100 }))
+const { data: products, status: productsStatus, error: productsError, refresh: refreshProducts } = await useAsyncData("transaction-products", () => api.getCards({ enabled: true, limit: 100 }))
+const { data: cards, refresh: refreshCards, status: cardsStatus, error: cardsError } = await useAsyncData(
   "transaction-member-cards",
   () => selectedMemberId.value ? api.getMemberCards(selectedMemberId.value) : Promise.resolve({ items: [], total: 0 }),
   { watch: [selectedMemberId] },
 )
+
+const setupStatus = computed<"idle" | "pending" | "success" | "error">(() => {
+  if (membersStatus.value === "error" || productsStatus.value === "error") return "error"
+  if (membersStatus.value === "pending" || productsStatus.value === "pending") return "pending"
+  return "success"
+})
+const setupError = computed(() => membersError.value?.statusMessage || productsError.value?.statusMessage || "办理数据加载失败")
+async function retrySetup() { await Promise.all([refreshMembers(), refreshProducts()]) }
 
 watch(selectedMemberId, async (memberId) => {
   await navigateTo({ path: "/transactions", query: memberId ? { memberId } : {} }, { replace: true })
@@ -72,6 +80,7 @@ async function unfreeze(payload: { card: MemberCard; reason: string }) {
 <template>
   <section class="panel">
     <div class="section-heading"><div><h2>卡项办理</h2><p class="hint">选择会员后办理购卡、续费、补卡、退款和生命周期操作。</p></div></div>
+    <CommonAsyncState :status="setupStatus" :empty="false" pending-text="正在加载会员和卡项…" :error-message="setupError" @retry="retrySetup">
     <div class="toolbar">
       <select v-model="selectedMemberId">
         <option value="">请选择会员</option>
@@ -83,12 +92,13 @@ async function unfreeze(payload: { card: MemberCard; reason: string }) {
       </select>
       <button type="button" :disabled="pending || !selectedMemberId || !selectedProductId" @click="purchase">办理购卡</button>
     </div>
+    </CommonAsyncState>
     <p v-if="message" class="success-message">{{ message }}</p>
     <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
   </section>
-  <p v-if="selectedMemberId && cardsStatus === 'pending'" class="hint">正在加载会员卡…</p>
-  <template v-else-if="selectedMemberId">
+  <CommonAsyncState v-if="selectedMemberId" :status="cardsStatus" :empty="!cards?.items.length" pending-text="正在加载会员卡…" empty-text="该会员暂无卡项，可在上方办理购卡。" :error-message="cardsError?.statusMessage || '会员卡加载失败'" @retry="refreshCards">
+  <div>
     <MemberCardLifecyclePanel v-for="card in cards?.items || []" :key="card.id" :card="card" :pending="pending" @renew="renew" @reissue="reissue" @refund="refund" @extend="extend" @freeze="freeze" @unfreeze="unfreeze" />
-    <section v-if="!cards?.items.length" class="panel empty-state">该会员暂无卡项，可在上方办理购卡。</section>
-  </template>
+  </div>
+  </CommonAsyncState>
 </template>

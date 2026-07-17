@@ -102,9 +102,8 @@ const scopeLabels: Record<CourseScope, string> = {
     </div>
 
     <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-    <p v-if="error" class="error-message">加载失败：{{ error.statusMessage }}</p>
-    <p v-else-if="status === 'pending'" class="hint">正在加载卡项…</p>
-    <div v-else class="table-wrap">
+    <CommonAsyncState :status="status" :empty="!data?.items.length" pending-text="正在加载卡项…" empty-text="暂无卡项模板" :error-message="error?.statusMessage || '卡项加载失败'" @retry="refresh">
+    <div class="table-wrap">
       <table>
         <thead><tr><th>名称</th><th>类型</th><th>售价</th><th>次数/有效期</th><th>开卡方式</th><th>适用范围</th><th>状态</th><th>操作</th></tr></thead>
         <tbody>
@@ -123,10 +122,10 @@ const scopeLabels: Record<CourseScope, string> = {
               </button>
             </td>
           </tr>
-          <tr v-if="!data?.items.length"><td colspan="8" class="empty-state">暂无卡项模板</td></tr>
         </tbody>
       </table>
     </div>
+    </CommonAsyncState>
   </section>
 
   <section v-if="showForm" class="panel">

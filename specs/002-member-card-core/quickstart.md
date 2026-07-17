@@ -1,122 +1,65 @@
 # Quickstart: member-card-core
 
-## 目标
+## 环境要求
 
-验证本 feature 的关键验收路径是否满足宪章与 PRD 映射：
-- 角色隔离（管理员/教练/会员）
-- 统一核销链路（预约预扣 -> 签到实扣 -> 取消返还）
-- 并发幂等（重复提交不重复生效）
-- 审计追溯（关键事件可按会员时间线回放）
+- Python 3.12 与 uv
+- Node.js 20 LTS、npm
+- PostgreSQL 16（已验证 16.14；设计基线 16.11）
+- PostgreSQL 用户需有目标数据库的建表、建索引和 `CREATE EXTENSION pg_trgm` 权限
 
-## 环境初始化
+本项目不依赖 Redis。默认可在没有 OpenTelemetry Collector 的情况下运行。
 
-### Backend（Python 3 + uv + PostgreSQL）
+## 1. 准备 PostgreSQL
+
+示例（请按本机管理员账号执行）：
+
+```sql
+CREATE USER yoga WITH PASSWORD 'yoga123';
+CREATE DATABASE yoga_sys OWNER yoga;
+```
+
+复制环境变量：
 
 ```bash
-mkdir -p backend
 cd backend
-uv venv
-source .venv/bin/activate
-uv init --python 3.12
-uv add fastapi "uvicorn[standard]" pydantic sqlalchemy alembic "psycopg[binary]" structlog opentelemetry-sdk
-uv add --dev pytest pytest-cov httpx schemathesis testcontainers
+cp .env.example .env
 ```
 
-> 数据库建议：PostgreSQL 16.11，本地可用 Docker 启动并创建 `yoga_sys` 库。
->
-> 本阶段不使用 Redis。
+至少检查以下配置：
 
-### Frontend（Nuxt 3 + dashboard-vue 风格）
-
-```bash
-mkdir -p frontend
-cd frontend
-npx nuxi@latest init .
-npm install
-npm install @nuxt/ui
+```env
+DATABASE_URL=postgresql+psycopg://yoga:yoga123@localhost:5432/yoga_sys
+JWT_SECRET=请使用至少32字节的随机密钥
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=请替换开发默认密码
+COACH_USERNAME=coach
+COACH_PASSWORD=请替换开发默认密码
 ```
 
-> 页面结构与交互参考 `https://github.com/nuxt-ui-templates/dashboard-vue`，在 Nuxt 中实现侧边栏、仪表盘、列表过滤与详情抽屉模式。
+`.env` 不应提交。生产环境必须替换 JWT 密钥和初始账号密码。
 
-## 前置数据
-
-1. 创建 1 个管理员账号、1 个教练账号、2 个会员账号（A/B）。
-2. 创建 2 张卡项模板：
-   - 次数卡（10 次，立即开卡）
-   - 体验卡（3 次，首次预约开卡）
-3. 为会员 A 办理两张可用卡，设置不同到期日（用于 FEFO 验证）。
-
-## 验收步骤
-
-### 场景 1：会员与卡项主数据（正常）
-
-1. 管理员新增会员 A，并更新其状态为 `normal`。
-2. 管理员新增卡项模板并保存核心字段。
-3. 预期：新增/编辑成功，可查询。
-
-### 场景 2：角色隔离（异常）
-
-1. 教练尝试编辑会员 A 基础资料。
-2. 会员 B 尝试读取会员 A 时间线。
-3. 预期：均被拒绝，且生成 `result=rejected` 审计日志。
-
-### 场景 3：交易与状态变更（正常 + 边界）
-
-1. 管理员为会员 A 执行购卡、续费。
-2. 冻结会员 A 某卡，再解冻。
-3. 预期：冻结期间暂停计时；解冻后到期日按冻结天数顺延。
-
-### 场景 4：核销链路一致性（正常）
-
-1. 对同一业务单执行 `reserve_hold`。
-2. 执行 `checkin_commit`。
-3. 对另一业务单执行 `reserve_hold` 后 `cancel_refund`。
-4. 预期：链路完整且顺序合法。
-
-### 场景 5：并发幂等（异常）
-
-1. 对同一退款请求并发提交两次（同 `Idempotency-Key`）。
-2. 对同一签到请求重复提交两次（同业务引用）。
-3. 预期：仅第一次改变状态，后续返回幂等结果，不重复扣返。
-
-### 场景 6：多卡 FEFO 选择（边界）
-
-1. 会员 A 拥有两张可扣减卡，分别设置到期日 D1 < D2。
-2. 执行一次预扣。
-3. 预期：优先命中 D1 卡；若 D1 与 D2 同到期，则命中更早开卡卡。
-
-### 场景 7：过期约束（边界）
-
-1. 将会员 A 卡项推进到到期或次数为 0。
-2. 发起新的预扣请求。
-3. 预期：请求被拒绝。
-
-## PRD 映射核对
-
-1. 对照 `spec.md` 的 `PRD Acceptance Mapping` 逐条打勾。
-2. 每条至少有 1 个正常流和 1 个边界/异常流用例证据。
-
-## 通过标准
-
-- 所有场景预期结果满足。
-- 时间线可检索到购卡、续费、退款、预扣、实扣、返还、冻结、解冻全量记录。
-- 未出现越权成功、重复扣次、重复退款、链路乱序。
-
-## US1 当前可运行方式（2026-07-16）
-
-### 后端
+## 2. 启动后端
 
 ```bash
 cd backend
 uv sync
-alembic upgrade head
-python -m app.scripts.seed_users
-uvicorn app.main:app --reload
+uv run alembic upgrade head
+uv run python -m app.scripts.seed_users
+uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-账号从 `.env` 读取；开发默认值为 `admin/admin123` 和 `coach/coach123`。生产环境必须替换 `JWT_SECRET` 和所有初始密码。
+验证：
 
-### 前端
+```bash
+curl http://127.0.0.1:8000/healthz
+uv run alembic current
+```
+
+预期分别看到 `{"status":"ok"}` 和 `0005_perf_indexes (head)`。
+
+## 3. 启动前端
+
+另开终端：
 
 ```bash
 cd frontend
@@ -124,19 +67,53 @@ npm install
 NUXT_BACKEND_BASE_URL=http://127.0.0.1:8000 npm run dev
 ```
 
-访问 `http://127.0.0.1:3000/login`。会员和卡项通过 Nuxt BFF 使用真实后端；课表、私教和报表仍为 Mock。
+访问 `http://127.0.0.1:3000/login`。使用 `.env` 中管理员或教练账号登录。
 
-### US1 验证命令
+## 4. 功能验证
+
+1. 会员管理：新增、编辑、暂停、禁用和归档会员；归档仅软删除，历史记录保留。
+2. 卡项管理：创建次数卡、期限卡、私教卡或体验卡，并启停模板。
+3. 卡项办理：购卡、续费、补卡、退款、冻结、解冻和延期；重复请求使用同一 `Idempotency-Key` 不会重复生效。
+4. 核销：按 `reserve_hold -> checkin_commit` 或 `reserve_hold -> cancel_refund` 顺序处理，卡项按 FEFO 规则选择。
+5. 业务时间线：从会员列表进入“业务记录”，核对交易、冻结、核销和审计事件；跨会员越权读取会被拒绝并留痕。
+
+主要接口文档：`http://127.0.0.1:8000/docs`。
+
+## 5. 可观测性
+
+开发环境默认输出可读的结构化日志，并为 HTTP 请求、交易、卡生命周期、核销和时间线查询创建 Span。
+
+```env
+LOG_FORMAT=console
+OTEL_ENABLED=true
+OTEL_SERVICE_NAME=yoga-sys-backend
+OTEL_EXPORTER_OTLP_ENDPOINT=
+OTEL_TRACES_SAMPLER_ARG=1.0
+```
+
+不配置 `OTEL_EXPORTER_OTLP_ENDPOINT` 时不会发送外部数据。若已有兼容 OTLP/HTTP 的 Collector，可填写 traces 端点；例如 `http://localhost:4318/v1/traces`。生产环境建议使用 `LOG_FORMAT=json` 并降低采样率。
+
+## 6. PostgreSQL 优化验证
+
+迁移会启用 `pg_trgm`，并创建会员姓名/手机号模糊检索、会员有效记录、卡模板、卡项 FEFO 和幂等记录过期时间索引，同时增加关键数据约束。
+
+```bash
+PGPASSWORD=yoga123 psql -h 127.0.0.1 -U yoga -d yoga_sys -c "\\dx pg_trgm"
+PGPASSWORD=yoga123 psql -h 127.0.0.1 -U yoga -d yoga_sys -c "\\di ix_*"
+```
+
+## 7. 完整验收
 
 ```bash
 cd backend
-uv run pytest -q
+uv run pytest
 
 cd ../frontend
 npm test
 npm run lint
 npm run typecheck
 npm run build
+npm run test:e2e
 ```
 
-Testcontainers 无法访问宿主映射端口的受限环境，可设置 `TEST_DATABASE_URL`，并在与 PostgreSQL 相同的 Docker 网络中执行 pytest。上文场景 3–7 属于 US2/US3，尚未在本轮交付。
+性能 p95 作为验收记录项，不作为 CI 硬门禁；功能正确性、权限、幂等、迁移和构建失败均属于阻断问题。

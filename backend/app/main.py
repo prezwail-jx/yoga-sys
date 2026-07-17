@@ -6,8 +6,10 @@ from app.api.endpoints import auth, card_products, member_cards, members, transa
 from app.api.routes import timeline, writeoff
 from app.api.middleware.audit_rejections import RejectedAuditMiddleware
 from app.api.middleware.request_context import RequestContextMiddleware
+from app.infra.observability import configure_observability
 
 def create_app() -> FastAPI:
+    configure_observability()
     app = FastAPI(title="Yoga Sys API", version="0.2.0")
     app.add_middleware(RejectedAuditMiddleware)
     app.add_middleware(RequestContextMiddleware)

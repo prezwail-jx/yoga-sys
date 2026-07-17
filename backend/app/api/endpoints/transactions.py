@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import CurrentUser, get_current_admin
 from app.api.deps.business_clock import get_business_today
 from app.infra.db.session import get_session
+from app.infra.observability import business_span
 from app.repositories.card_product import CardProductRepository
 from app.repositories.member import MemberRepository
 from app.repositories.member_card_repository import MemberCardRepository
@@ -38,18 +39,19 @@ def create_transaction(payload: CreateTransactionRequest, request: Request, idem
     service = TransactionService(session, member_repo, product_repo, card_repo, transaction_repo)
     lifecycle = MemberCardLifecycleService(session, member_repo, product_repo, card_repo, transaction_repo)
     trace_id = request.state.trace_id
-    if payload.txn_type == "purchase":
-        transaction, card = service.purchase(payload, user, idempotency_key, trace_id, today)
-    else:
-        card = lifecycle.reconcile_card(service._card(payload.member_id, payload.member_card_id), today, trace_id)
-        if payload.txn_type == "renew":
-            transaction, card = service.renew(payload, user, idempotency_key, trace_id, today)
-        elif payload.txn_type == "reissue":
-            transaction, card = service.reissue(payload, user, idempotency_key, trace_id)
-        elif payload.txn_type == "refund":
-            transaction, card = service.refund(payload, user, idempotency_key, trace_id, today)
+    with business_span("transaction.apply", business_action=payload.txn_type, member_id=payload.member_id, actor_role=user.role):
+        if payload.txn_type == "purchase":
+            transaction, card = service.purchase(payload, user, idempotency_key, trace_id, today)
         else:
-            transaction, card = lifecycle.extend(payload, today, user, idempotency_key, trace_id)
+            card = lifecycle.reconcile_card(service._card(payload.member_id, payload.member_card_id), today, trace_id)
+            if payload.txn_type == "renew":
+                transaction, card = service.renew(payload, user, idempotency_key, trace_id, today)
+            elif payload.txn_type == "reissue":
+                transaction, card = service.reissue(payload, user, idempotency_key, trace_id)
+            elif payload.txn_type == "refund":
+                transaction, card = service.refund(payload, user, idempotency_key, trace_id, today)
+            else:
+                transaction, card = lifecycle.extend(payload, today, user, idempotency_key, trace_id)
     body = operation_body(transaction, card, today)
     idempotency.persist(scope="transactions", actor_id=user.user_id, idempotency_key=idempotency_key, request_hash=request_hash, response_code=200, response_body=body)
     return body

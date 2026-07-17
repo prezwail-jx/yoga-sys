@@ -52,9 +52,8 @@ function openChain(event: TimelineEvent) {
       <input v-model="dateTo" type="date" aria-label="结束日期" />
       <button type="button" @click="applyFilters">查询</button>
     </div>
-    <p v-if="error" class="error-message">时间线加载失败：{{ error.statusMessage }}</p>
-    <p v-else-if="status === 'pending'" class="hint">正在加载时间线…</p>
-    <div v-else class="timeline-stream">
+    <CommonAsyncState :status="status" :empty="!data?.items.length" pending-text="正在加载时间线…" empty-text="当前筛选条件下暂无业务记录。" :error-message="error?.statusMessage || '时间线加载失败'" @retry="refresh">
+    <div class="timeline-stream">
       <article v-for="event in data?.items || []" :key="`${event.source}:${event.id}`" class="timeline-card">
         <div>
           <strong>{{ timelineActionLabels[event.action] || event.summary }}</strong>
@@ -69,8 +68,8 @@ function openChain(event: TimelineEvent) {
         <p v-if="event.operatorRole">操作人：{{ event.operatorId }}（{{ event.operatorRole }}）</p>
         <button v-if="event.businessRef" class="button-secondary" type="button" @click="openChain(event)">查看核销链路</button>
       </article>
-      <p v-if="!data?.items.length" class="empty-state">当前筛选条件下暂无业务记录。</p>
     </div>
+    </CommonAsyncState>
     <div class="pagination">
       <button class="button-secondary" type="button" :disabled="skip === 0" @click="skip = Math.max(0, skip - limit)">上一页</button>
       <span>第 {{ Math.floor(skip / limit) + 1 }} 页</span>

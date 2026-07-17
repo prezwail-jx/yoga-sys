@@ -8,6 +8,7 @@ from app.api.deps import CurrentUser, get_current_admin
 from app.api.deps.business_clock import get_business_today
 from app.api.endpoints.transactions import operation_body
 from app.infra.db.session import get_session
+from app.infra.observability import business_span
 from app.repositories.card_product import CardProductRepository
 from app.repositories.member import MemberRepository
 from app.repositories.member_card_repository import MemberCardRepository
@@ -40,7 +41,8 @@ def _run_idempotent(scope, memberCardId, payload, request, key, session, user, t
     if replay.hit:
         return JSONResponse(status_code=replay.response_code, content=replay.response_body)
     lifecycle = lifecycle_service(session)
-    transaction, card = action(lifecycle)
+    with business_span("member_card.lifecycle", business_action=scope, member_card_id=memberCardId, actor_role=user.role):
+        transaction, card = action(lifecycle)
     response = operation_body(transaction, card, today)
     service.persist(scope=scope, actor_id=user.user_id, idempotency_key=key, request_hash=request_hash, response_code=200, response_body=response)
     return response

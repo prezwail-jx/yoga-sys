@@ -138,11 +138,11 @@
 
 **Purpose**: Hardening, documentation, and end-to-end verification across stories.
 
-- [ ] T059 [P] Add structured logging and OpenTelemetry enrichment for key business spans in `backend/app/infra/observability.py`
-- [ ] T060 [P] Add PostgreSQL performance indexes and constraint tuning migration in `backend/alembic/versions/0002_perf_indexes.py`
-- [ ] T061 Update quickstart runbook with final API/UI validation evidence in `specs/002-member-card-core/quickstart.md`
-- [ ] T062 Run full acceptance suite and capture execution report in `specs/002-member-card-core/checklists/acceptance-report.md`
-- [ ] T063 [P] Add frontend UX polish for loading/empty/error states across member-card pages in `frontend/components/common/AsyncState.vue`
+- [X] T059 [P] Add structured logging and OpenTelemetry enrichment for key business spans in `backend/app/infra/observability.py`
+- [X] T060 [P] Add PostgreSQL performance indexes and constraint tuning migration in `backend/alembic/versions/0005_perf_indexes.py`
+- [X] T061 Update quickstart runbook with final API/UI validation evidence in `specs/002-member-card-core/quickstart.md`
+- [X] T062 Run full acceptance suite and capture execution report in `specs/002-member-card-core/checklists/acceptance-report.md`
+- [X] T063 [P] Add frontend UX polish for loading/empty/error states across member-card pages in `frontend/components/common/AsyncState.vue`
 
 ---
 

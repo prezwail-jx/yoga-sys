@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.api.audit import record_audit
 from app.api.deps import CurrentUser, get_current_user
 from app.infra.db.session import get_session
+from app.infra.observability import business_span
 from app.repositories.member import MemberRepository
 from app.schemas.writeoff import TimelineListResponse
 from app.services.access_policy_service import AccessPolicyService
@@ -44,8 +45,9 @@ def get_member_timeline(
         )
         session.commit()
         raise
-    items, total = MemberTimelineService(session).query(
-        member_id=memberId, actor_role=user.role, category=category, action=action,
-        date_from=date_from, date_to=date_to, business_ref=business_ref, skip=skip, limit=limit,
-    )
+    with business_span("member_timeline.query", member_id=memberId, category=category, actor_role=user.role):
+        items, total = MemberTimelineService(session).query(
+            member_id=memberId, actor_role=user.role, category=category, action=action,
+            date_from=date_from, date_to=date_to, business_ref=business_ref, skip=skip, limit=limit,
+        )
     return {"items": items, "total": total, "skip": skip, "limit": limit}

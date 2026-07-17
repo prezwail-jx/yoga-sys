@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
 from contextlib import contextmanager
 from typing import Generator
+
+load_dotenv(Path(__file__).resolve().parents[3] / ".env")
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
