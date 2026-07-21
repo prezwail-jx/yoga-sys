@@ -21,7 +21,7 @@ class CreateCardProductRequest(ApiModel):
     valid_days: int | None = Field(None, ge=1)
     activation_mode: ActivationModeEnum
     applicable_course_scope: CourseScopeEnum
-    specific_course_ids: list[str] | None = None
+    specific_course_ids: list[UUID] | None = None
     absence_deduct_enabled: bool = False
     cancel_refund_enabled: bool = False
 
@@ -47,7 +47,7 @@ class UpdateCardProductRequest(ApiModel):
     valid_days: int | None = Field(None, ge=1)
     activation_mode: ActivationModeEnum | None = None
     applicable_course_scope: CourseScopeEnum | None = None
-    specific_course_ids: list[str] | None = None
+    specific_course_ids: list[UUID] | None = None
     absence_deduct_enabled: bool | None = None
     cancel_refund_enabled: bool | None = None
     enabled: bool | None = None

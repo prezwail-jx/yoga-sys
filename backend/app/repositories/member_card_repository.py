@@ -31,7 +31,15 @@ class MemberCardRepository:
     def list_by_member(self, member_id: UUID) -> list[MemberCard]:
         return list(self.session.scalars(select(MemberCard).where(MemberCard.member_id == member_id).order_by(MemberCard.created_at.desc())).all())
 
-    def list_fefo_candidates(self, member_id: UUID, today: date, *, for_update: bool = False, include_pending: bool = False) -> list[MemberCard]:
+    def list_fefo_candidates(
+        self,
+        member_id: UUID,
+        today: date,
+        *,
+        for_update: bool = False,
+        include_pending: bool = False,
+        course_id: UUID | None = None,
+    ) -> list[MemberCard]:
         statuses = ["active"]
         if include_pending:
             statuses.append("pending_activation")
@@ -53,4 +61,15 @@ class MemberCardRepository:
         )
         if for_update:
             stmt = stmt.with_for_update()
-        return list(self.session.scalars(stmt).all())
+        cards = list(self.session.scalars(stmt).all())
+        if course_id is None:
+            return cards
+        course_ref = str(course_id)
+        return [
+            card for card in cards
+            if (card.terms_snapshot or {}).get("applicableCourseScope") == "group"
+            or (
+                (card.terms_snapshot or {}).get("applicableCourseScope") == "specific"
+                and course_ref in ((card.terms_snapshot or {}).get("specificCourseIds") or [])
+            )
+        ]

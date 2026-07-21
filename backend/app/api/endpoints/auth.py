@@ -14,4 +14,9 @@ def login(request: LoginRequest, auth_service: AuthService = Depends(get_auth_se
 
 @router.get("/me", response_model=CurrentUserResponse)
 def me(user: CurrentUser = Depends(get_current_user)):
-    return CurrentUserResponse(username=user.user_id, role=user.role, member_id=user.member_id)
+    return CurrentUserResponse(
+        username=user.user_id,
+        role=user.role,
+        member_id=user.member_id,
+        coach_profile_id=user.coach_profile_id,
+    )

@@ -8,6 +8,9 @@ from sqlalchemy.orm import Session
 
 from app.domain.audit_log import AuditLog
 from app.domain.card_transaction import CardTransaction, TRANSACTION_TYPES
+from app.domain.class_booking import ClassBooking
+from app.domain.class_session import ClassSession
+from app.domain.course import Course
 from app.domain.member_card import MemberCard
 from app.domain.member_timeline_view import MemberTimelineView
 from app.domain.writeoff_event import WRITE_OFF_EVENT_TYPES, WriteOffEvent
@@ -47,6 +50,7 @@ class MemberTimelineService:
                 CardTransaction.reason.label("reason"), CardTransaction.operator_id.label("operator_id"),
                 CardTransaction.operator_role.label("operator_role"), literal("member_card").label("object_type"),
                 cast(CardTransaction.member_card_id, String).label("object_id"), literal(2).label("source_priority"),
+                cast(literal(None), String).label("booking_course_name"),
             ).join(MemberCard, MemberCard.id == CardTransaction.member_card_id).where(*filters))
         if category in {"all", "writeoff"}:
             filters = [WriteOffEvent.member_id == member_id]
@@ -66,7 +70,12 @@ class MemberTimelineService:
                 cast(literal(None), String).label("reason"), WriteOffEvent.operator_id.label("operator_id"),
                 WriteOffEvent.operator_role.label("operator_role"), literal("writeoff_event").label("object_type"),
                 cast(WriteOffEvent.id, String).label("object_id"), literal(1).label("source_priority"),
-            ).where(*filters))
+                Course.name.label("booking_course_name"),
+            ).outerjoin(
+                ClassBooking, cast(ClassBooking.id, String) == WriteOffEvent.business_ref
+            ).outerjoin(
+                ClassSession, ClassSession.id == ClassBooking.class_session_id
+            ).outerjoin(Course, Course.id == ClassSession.course_id).where(*filters))
         if actor_role == "admin" and category in {"all", "audit"} and not business_ref:
             filters = [
                 AuditLog.member_id == member_id,
@@ -86,6 +95,7 @@ class MemberTimelineService:
                 AuditLog.operator_id.label("operator_id"), cast(AuditLog.operator_role, String).label("operator_role"),
                 AuditLog.object_type.label("object_type"), AuditLog.object_id.label("object_id"),
                 literal(3).label("source_priority"),
+                cast(literal(None), String).label("booking_course_name"),
             ).where(*filters))
         if not statements:
             return [], 0
@@ -110,7 +120,7 @@ class MemberTimelineService:
                 operator_id=operator_id, operator_role=row["operator_role"] if actor_role == "admin" else None,
                 object_type=row["object_type"] if actor_role == "admin" else None,
                 object_id=row["object_id"] if actor_role == "admin" else None,
-                summary=ACTION_LABELS.get(row["action"], row["action"]),
+                summary=self._summary(row["action"], row["booking_course_name"]),
             ))
         return items, int(total)
 
@@ -124,3 +134,8 @@ class MemberTimelineService:
             filters.append(column >= start)
         if end:
             filters.append(column < end)
+
+    @staticmethod
+    def _summary(action: str, course_name: str | None) -> str:
+        label = ACTION_LABELS.get(action, action)
+        return f"{label} · {course_name}" if course_name else label

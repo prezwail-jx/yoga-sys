@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from testcontainers.postgres import PostgresContainer
 
 from app.core.security import get_password_hash
-from app.domain import AdminUser
+from app.domain import AdminUser, CoachProfile
 from app.infra.db import session as session_module
 from app.infra.db.session import get_session
 
@@ -50,8 +50,15 @@ def db(db_engine) -> Session:
     from sqlalchemy import select
     if session.scalar(select(AdminUser).where(AdminUser.username == "admin")) is None:
         session.add(AdminUser(username="admin", password_hash=get_password_hash("admin123"), role="admin"))
-    if session.scalar(select(AdminUser).where(AdminUser.username == "coach")) is None:
-        session.add(AdminUser(username="coach", password_hash=get_password_hash("coach123"), role="coach"))
+    coach_user = session.scalar(select(AdminUser).where(AdminUser.username == "coach"))
+    if coach_user is None:
+        coach_user = AdminUser(username="coach", password_hash=get_password_hash("coach123"), role="coach")
+        session.add(coach_user)
+    if coach_user.coach_profile_id is None:
+        coach_profile = CoachProfile(name="Seed Coach", enabled=True)
+        session.add(coach_profile)
+        session.flush()
+        coach_user.coach_profile_id = coach_profile.id
     session.flush()
     yield session
     session.close()
@@ -64,7 +71,15 @@ def client(db: Session) -> TestClient:
     from app.main import app
 
     def override_get_session():
-        yield db
+        transaction = db.begin_nested()
+        try:
+            yield db
+            if transaction.is_active:
+                transaction.commit()
+        except Exception:
+            if transaction.is_active:
+                transaction.rollback()
+            raise
 
     app.dependency_overrides[get_session] = override_get_session
     with TestClient(app) as test_client:

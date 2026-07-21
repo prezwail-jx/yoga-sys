@@ -1,10 +1,14 @@
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.api.deps.auth import CurrentUser
 from app.services.audit_log_service import AuditLogEvent, AuditLogRepository, AuditLogService
+
+if TYPE_CHECKING:
+    from app.api.deps.auth import CurrentUser
 
 def record_audit(session: Session, *, trace_id: str, action: str, user: CurrentUser, object_type: str, object_id: str, result: str = "success", member_id: UUID | None = None, idempotency_key: str | None = None, before_state: dict[str, Any] | None = None, after_state: dict[str, Any] | None = None, reason: str | None = None) -> None:
     AuditLogService(AuditLogRepository(session)).record(AuditLogEvent(

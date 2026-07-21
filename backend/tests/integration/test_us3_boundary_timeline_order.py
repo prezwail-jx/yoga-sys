@@ -3,7 +3,7 @@ from app.api.deps.business_clock import get_business_today
 from app.main import app
 from .test_us3_normal_timeline import _member, _purchase, _times_product, _writeoff
 
-TODAY = date(2026, 7, 17)
+TODAY = date.today()
 
 def test_same_day_cancel_rebook_and_absence_are_stably_ordered(client, auth_headers):
     app.dependency_overrides[get_business_today] = lambda: TODAY

@@ -14,7 +14,7 @@ async function submit() {
   errorMessage.value = ""
   try {
     const user = await login(username.value, password.value)
-    await navigateTo(user.role === "admin" ? "/members" : "/forbidden")
+    await navigateTo(user.role === "admin" ? "/members" : "/schedule")
   } catch (error: unknown) {
     errorMessage.value = getApiErrorMessage(error, "登录失败")
   } finally {

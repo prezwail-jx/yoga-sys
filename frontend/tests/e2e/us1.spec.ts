@@ -38,13 +38,20 @@ test("管理员登录后可以进入会员管理并打开新增表单", async ({
   await expect(page.getByRole("heading", { name: "新增会员", exact: true })).toBeVisible()
 })
 
-test("教练登录后进入无权限页面", async ({ page }) => {
+test("教练登录后进入本人课表", async ({ page }) => {
   await page.route("**/api/auth/login", route =>
     route.fulfill({ json: { username: "coach", role: "coach" } }),
+  )
+  await page.route("**/api/auth/me", route =>
+    route.fulfill({ json: { username: "coach", role: "coach", coachProfileId: "coach-1" } }),
+  )
+  await page.route("**/api/class-sessions?**", route =>
+    route.fulfill({ json: { items: [], weekStart: "2026-07-20", weekEnd: "2026-07-26" } }),
   )
   await page.goto("/login")
   await page.getByLabel("用户名").fill("coach")
   await page.getByLabel("密码").fill("coach123")
   await page.getByRole("button", { name: "登录" }).click()
-  await expect(page.getByRole("heading", { name: "没有管理权限" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "团课周课表" })).toBeVisible()
+  await expect(page.getByRole("link", { name: "我的课表" })).toBeVisible()
 })

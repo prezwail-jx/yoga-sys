@@ -10,8 +10,18 @@ class MemberRepository:
     def __init__(self, session: Session):
         self.session = session
 
-    def get_by_id(self, member_id: UUID) -> Member | None:
-        stmt = select(Member).where(Member.id == member_id, Member.deleted_at.is_(None))
+    def get_by_id(
+        self,
+        member_id: UUID,
+        *,
+        for_update: bool = False,
+        include_deleted: bool = False,
+    ) -> Member | None:
+        stmt = select(Member).where(Member.id == member_id)
+        if not include_deleted:
+            stmt = stmt.where(Member.deleted_at.is_(None))
+        if for_update:
+            stmt = stmt.with_for_update()
         return self.session.scalars(stmt).first()
 
     def get_by_phone(self, phone: str, include_deleted: bool = True) -> Member | None:

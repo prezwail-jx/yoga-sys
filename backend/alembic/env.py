@@ -13,11 +13,7 @@ from alembic import context
 
 # Import our Base model so Alembic can see the metadata for autogenerate
 from app.domain.base import Base
-
-# Also import other models here later when we add them
-# import app.domain.member  # noqa
-# import app.domain.card_product  # noqa
-# import app.domain.admin_user  # noqa
+import app.domain  # noqa: F401,E402
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -1,12 +1,13 @@
+from __future__ import annotations
+
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from fastapi import HTTPException, status
 
 from app.api.audit import record_audit
-from app.api.deps.auth import CurrentUser
 from app.domain.card_transaction import CardTransaction
 from app.domain.member_card import MemberCard
 from app.repositories.card_product import CardProductRepository
@@ -14,6 +15,9 @@ from app.repositories.member import MemberRepository
 from app.repositories.member_card_repository import MemberCardRepository
 from app.repositories.transaction_repository import TransactionRepository
 from app.schemas.member_card import CreateTransactionRequest
+
+if TYPE_CHECKING:
+    from app.api.deps.auth import CurrentUser
 
 
 def _json_value(value: Any) -> Any:

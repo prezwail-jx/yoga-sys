@@ -8,6 +8,198 @@ export interface CurrentUser {
   username: string
   role: UserRole
   memberId?: string | null
+  coachProfileId?: string | null
+}
+
+export type CourseDifficulty = "all_levels" | "beginner" | "intermediate" | "advanced"
+export type ClassSessionStatus = "draft" | "published" | "paused" | "cancelled" | "completed"
+export type ClassBookingStatus = "reserved" | "checked_in" | "cancelled" | "absent"
+
+export interface Course {
+  id: string
+  name: string
+  durationMinutes: number
+  difficulty: CourseDifficulty
+  description: string | null
+  coverUrl: string | null
+  enabled: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CourseInput {
+  name: string
+  durationMinutes: number
+  difficulty?: CourseDifficulty
+  description?: string | null
+  coverUrl?: string | null
+  enabled?: boolean
+}
+
+export interface CourseList {
+  items: Course[]
+  total: number
+  skip: number
+  limit: number
+}
+
+export interface Room {
+  id: string
+  name: string
+  capacity: number
+  enabled: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface RoomInput {
+  name: string
+  capacity: number
+  enabled?: boolean
+}
+
+export interface RoomList {
+  items: Room[]
+  total: number
+  skip: number
+  limit: number
+}
+
+export interface CoachProfile {
+  id: string
+  name: string
+  avatarUrl: string | null
+  bio: string | null
+  specialtyCourseIds: string[] | null
+  enabled: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CoachProfileInput {
+  name: string
+  avatarUrl?: string | null
+  bio?: string | null
+  specialtyCourseIds?: string[] | null
+  enabled?: boolean
+}
+
+export interface CoachProfileList {
+  items: CoachProfile[]
+  total: number
+  skip: number
+  limit: number
+}
+
+export interface ClassSession {
+  id: string
+  courseId: string
+  coachProfileId: string
+  roomId: string
+  courseName: string
+  coachName: string
+  roomName: string
+  startAt: string
+  endAt: string
+  capacity: number
+  bookingOpenHoursBefore: number
+  bookingCloseMinutesBefore: number
+  cancelCutoffMinutesBefore: number
+  status: ClassSessionStatus
+  sourceSessionId: string | null
+  createdBy: string
+  bookedCount: number
+  remainingCapacity: number
+  isFull: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ClassSessionInput {
+  courseId: string
+  coachProfileId: string
+  roomId: string
+  startAt: string
+  endAt: string
+  capacity: number
+  bookingOpenHoursBefore?: number
+  bookingCloseMinutesBefore?: number
+  cancelCutoffMinutesBefore?: number
+}
+
+export interface ClassSessionList {
+  items: ClassSession[]
+  weekStart: string
+  weekEnd: string
+}
+
+export interface CopyWeekInput {
+  sourceWeekStart: string
+  targetWeekStart: string
+}
+
+export interface CopyWeekConflict {
+  sourceSessionId: string
+  targetStartAt: string
+  reason: string
+}
+
+export interface CopyWeekResult {
+  created: ClassSession[]
+  conflicts: CopyWeekConflict[]
+}
+
+export interface ClassBooking {
+  id: string
+  classSessionId: string
+  memberId: string
+  memberName: string
+  courseName: string
+  coachName: string
+  roomName: string
+  startAt: string
+  endAt: string
+  sessionStatus: ClassSessionStatus
+  status: ClassBookingStatus
+  bookedById: string | null
+  bookedByRole: string | null
+  bookedAt: string
+  terminalById: string | null
+  terminalByRole: string | null
+  terminalAt: string | null
+  cancellationReason: string | null
+  traceId: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ClassBookingList {
+  items: ClassBooking[]
+  total: number
+  skip: number
+  limit: number
+}
+
+export interface CreateClassBookingInput {
+  memberId?: string | null
+}
+
+export interface CancelClassBookingInput {
+  reason?: string | null
+}
+
+export interface AccountBindingInput {
+  username: string
+  initialPassword: string
+}
+
+export interface AccountBinding {
+  id: string
+  username: string
+  role: "member" | "coach"
+  memberId: string | null
+  coachProfileId: string | null
+  createdAt: string
 }
 
 export interface Member {

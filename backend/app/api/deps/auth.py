@@ -14,6 +14,7 @@ class CurrentUser:
     user_id: str
     role: str
     member_id: str | None = None
+    coach_profile_id: str | None = None
 
 
 def get_current_user(
@@ -35,7 +36,18 @@ def get_current_user(
     member_id = payload.get("memberId")
     if role == "member" and not member_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Member token is missing memberId")
-    user = CurrentUser(user_id=str(user_id), role=str(role), member_id=str(member_id) if member_id else None)
+    coach_profile_id = payload.get("coachProfileId")
+    if role == "coach" and not coach_profile_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Coach token is missing coachProfileId",
+        )
+    user = CurrentUser(
+        user_id=str(user_id),
+        role=str(role),
+        member_id=str(member_id) if member_id else None,
+        coach_profile_id=str(coach_profile_id) if coach_profile_id else None,
+    )
     request.state.current_user = user
     return user
 

@@ -11,12 +11,11 @@ export function useAuth() {
   }
 
   async function login(username: string, password: string) {
-    const result = await $fetch<CurrentUser>("/api/auth/login", {
+    await $fetch("/api/auth/login", {
       method: "POST",
       body: { username, password },
     })
-    user.value = result
-    return result
+    return loadUser()
   }
 
   async function logout() {

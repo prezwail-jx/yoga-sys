@@ -1,14 +1,25 @@
 <script setup lang="ts">
 const { user, logout } = useAuth()
-const menu = [
-  { to: "/", label: "运营看板", mock: true },
-  { to: "/members", label: "会员管理", mock: false },
-  { to: "/cards", label: "卡项管理", mock: false },
-  { to: "/transactions", label: "卡项办理", mock: false },
-  { to: "/schedule", label: "团课课表", mock: true },
-  { to: "/private-training", label: "私教预约", mock: true },
-  { to: "/reports", label: "统计报表", mock: true },
-]
+const menu = computed(() => {
+  if (user.value?.role === "member") {
+    return [
+      { to: "/schedule", label: "团课课表", mock: false },
+      { to: "/my-bookings", label: "我的预约", mock: false },
+    ]
+  }
+  if (user.value?.role === "coach") {
+    return [{ to: "/schedule", label: "我的课表", mock: false }]
+  }
+  return [
+    { to: "/", label: "运营看板", mock: true },
+    { to: "/members", label: "会员管理", mock: false },
+    { to: "/cards", label: "卡项管理", mock: false },
+    { to: "/transactions", label: "卡项办理", mock: false },
+    { to: "/schedule", label: "团课课表", mock: false },
+    { to: "/private-training", label: "私教预约", mock: true },
+    { to: "/reports", label: "统计报表", mock: true },
+  ]
+})
 </script>
 
 <template>
@@ -27,7 +38,7 @@ const menu = [
       <header class="top-header">
         <div>
           <h1>瑜伽馆会员管理系统</h1>
-          <p>会员与卡项已接入真实服务；标记 Mock 的模块仍为演示数据。</p>
+          <p>会员、卡项与团课已接入真实服务；标记 Mock 的模块仍为演示数据。</p>
         </div>
         <div v-if="user" class="user-actions">
           <span>{{ user.username }} · {{ user.role }}</span>

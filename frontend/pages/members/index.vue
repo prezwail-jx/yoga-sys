@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Member, MemberInput, MemberStatus } from "~/types/domain"
+import type { AccountBindingInput, Member, MemberInput, MemberStatus } from "~/types/domain"
 import { getApiErrorMessage } from "~/utils/errors"
 
 definePageMeta({ middleware: "require-admin" })
@@ -13,6 +13,11 @@ const showForm = ref(false)
 const editingId = ref<string | null>(null)
 const pending = ref(false)
 const errorMessage = ref("")
+const successMessage = ref("")
+const accountTarget = ref<Member | null>(null)
+const accountSubmit = useIdempotentSubmit()
+const accountForm = reactive<AccountBindingInput>({ username: "", initialPassword: "" })
+const boundMemberIds = ref(new Set<string>())
 
 const newForm = (): MemberInput => ({
   name: "",
@@ -100,6 +105,33 @@ async function removeMember(member: Member) {
   await api.deleteMember(member.id)
   await refresh()
 }
+
+function openAccount(member: Member) {
+  errorMessage.value = ""
+  successMessage.value = ""
+  accountTarget.value = member
+  accountForm.username = ""
+  accountForm.initialPassword = ""
+}
+
+async function createAccount() {
+  if (!accountTarget.value) return
+  errorMessage.value = ""
+  successMessage.value = ""
+  const member = accountTarget.value
+  try {
+    const binding = await accountSubmit.submit(
+      `member-account:${member.id}:${accountForm.username}`,
+      key => api.createMemberAccount(member.id, { ...accountForm }, key),
+    )
+    accountSubmit.reset()
+    boundMemberIds.value = new Set([...boundMemberIds.value, member.id])
+    accountTarget.value = null
+    successMessage.value = `已为 ${member.name} 开通账号 ${binding.username}`
+  } catch (error: unknown) {
+    errorMessage.value = getApiErrorMessage(error, "会员账号开通失败")
+  }
+}
 </script>
 
 <template>
@@ -125,6 +157,7 @@ async function removeMember(member: Member) {
     </div>
 
     <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+    <p v-if="successMessage" class="success-message" role="status">{{ successMessage }}</p>
     <CommonAsyncState :status="status" :empty="!data?.items.length" pending-text="正在加载会员…" empty-text="暂无符合条件的会员" :error-message="error?.statusMessage || '会员加载失败'" @retry="refresh">
     <div class="table-wrap">
       <table>
@@ -138,6 +171,7 @@ async function removeMember(member: Member) {
             <td class="actions">
               <NuxtLink class="button-secondary record-link" :to="`/members/${member.id}/timeline`">业务记录</NuxtLink>
               <button class="button-secondary" type="button" @click="openEdit(member)">编辑</button>
+              <button class="button-secondary" type="button" :disabled="boundMemberIds.has(member.id) || member.status === 'disabled'" @click="openAccount(member)">{{ boundMemberIds.has(member.id) ? "账号已开通" : "开通账号" }}</button>
               <button v-if="member.status === 'normal'" class="button-secondary" type="button" @click="changeStatus(member, 'paused')">暂停</button>
               <button v-if="member.status === 'paused'" class="button-secondary" type="button" @click="changeStatus(member, 'normal')">恢复</button>
               <button v-if="member.status !== 'disabled'" class="button-danger" type="button" @click="changeStatus(member, 'disabled')">禁用</button>
@@ -178,4 +212,21 @@ async function removeMember(member: Member) {
       </div>
     </form>
   </section>
+
+  <section v-if="accountTarget" class="panel account-panel">
+    <div class="section-heading">
+      <div><h2>为 {{ accountTarget.name }} 开通会员账号</h2><p class="hint">账号将唯一绑定该会员，初始密码不会在创建后回显。</p></div>
+      <button class="button-secondary" type="button" :disabled="accountSubmit.pending.value" @click="accountTarget = null">关闭</button>
+    </div>
+    <form class="form-grid" @submit.prevent="createAccount">
+      <label>用户名<input v-model="accountForm.username" autocomplete="off" required minlength="3" maxlength="64" /></label>
+      <label>初始密码<input v-model="accountForm.initialPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="128" /></label>
+      <div class="full-width form-actions"><button type="submit" :disabled="accountSubmit.pending.value">{{ accountSubmit.pending.value ? "开通中…" : "确认开通" }}</button></div>
+    </form>
+  </section>
 </template>
+
+<style scoped>
+.success-message { padding: 10px 12px; color: #37622a; background: #f0f9ec; border-radius: 8px; }
+.account-panel { border-top: 4px solid var(--brand); }
+</style>
