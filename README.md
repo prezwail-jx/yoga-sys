@@ -2,7 +2,7 @@
 
 A full-stack operations system for small yoga studios and boutique gyms, built with Nuxt 3, FastAPI, and PostgreSQL.
 
-The current release delivers the member and card-product core: authentication, member management, card sales and lifecycle operations, write-off consistency, audit trails, and member timelines. Group scheduling, private coaching, dashboards, and reports are visible in the UI but still use demonstration data.
+The current release delivers the member, card, group-class, private-training, and reporting core: authentication, member management, card sales and lifecycle operations, booking/write-off consistency, audit trails, member timelines, private lessons, and operational reports. The dashboard remains a project-status placeholder.
 
 ## Delivery Status
 
@@ -13,12 +13,12 @@ The current release delivers the member and card-product core: authentication, m
 | Card-product management | Implemented | Duration, session, private, and trial card templates |
 | Card transactions | Implemented | Purchase, renewal, reissue, refund, and extension |
 | Card lifecycle | Implemented | Activation, expiry, freeze, unfreeze, and reminders |
-| Write-off engine | Partially delivered | Reserve, commit, refund, and absence APIs exist; no real booking operations page yet |
+| Write-off engine | Implemented | Group-class and private-training booking flows reuse reserve, commit, refund, and absence chains |
 | Member timeline and audit | Implemented | Transaction, write-off, and audit replay by member |
 | Dashboard | Mock | Project-status placeholder only |
-| Group schedule | Mock | Read-only demonstration data |
-| Private coaching | Mock | Read-only demonstration data |
-| Reports | Mock | Demonstration summary data without export |
+| Group schedule | Implemented | Real weekly scheduling, booking, attendance, cancellation, and completion flows |
+| Private coaching | Implemented | Real coach availability, member requests, confirmation/rejection, pending cancellation, sign-in, and lesson records |
+| Reports | Implemented | Real summaries, trends, drill-down details, and synchronous Excel export |
 
 See [features.md](./features.md) for the detailed feature inventory and roadmap.
 
@@ -50,14 +50,41 @@ features.md   Current feature inventory and roadmap
 
 ## Prerequisites
 
-- Python 3.12
-- [uv](https://docs.astral.sh/uv/)
+- [Docker](https://docs.docker.com/get-docker/) (recommended) **or** Python 3.12 + [uv](https://docs.astral.sh/uv/) + PostgreSQL 16.x
 - Node.js 20 LTS and npm
-- PostgreSQL 16.x
 
-PostgreSQL is required. Migrations use UUID, JSONB, ENUM, trigram indexes, and the pgcrypto, uuid-ossp, and pg_trgm extensions. SQLite and MySQL are not drop-in replacements.
+Migrations use UUID, JSONB, ENUM, trigram indexes, and the pgcrypto, uuid-ossp, and pg_trgm extensions. SQLite and MySQL are not drop-in replacements.
 
-## Quick Start
+## Quick Start (Docker)
+
+Use Docker Compose to start both PostgreSQL and the backend:
+
+```bash
+docker compose up -d
+```
+
+This will:
+1. Start PostgreSQL 16 (port 5433, mapped to avoid conflicts with local PostgreSQL)
+2. Build and start the FastAPI backend (port 8000)
+3. Auto-run database migrations on startup
+
+Verify:
+
+```bash
+curl http://127.0.0.1:8000/healthz   # {"status":"ok"}
+```
+
+### Start the frontend
+
+```bash
+cd frontend
+npm install
+NUXT_BACKEND_BASE_URL=http://127.0.0.1:8000 npm run dev
+```
+
+Open <http://127.0.0.1:3000/login>. Default admin credentials: **admin / admin123**.
+
+## Manual Setup (without Docker)
 
 ### 1. Prepare PostgreSQL
 
@@ -130,7 +157,7 @@ curl http://127.0.0.1:8000/healthz
 uv run alembic current
 ~~~
 
-Expected migration head: **0005_perf_indexes (head)**.
+Expected migration head: **0007_private_training_reporting (head)**.
 
 ### 3. Start the frontend
 
@@ -142,7 +169,7 @@ npm install
 NUXT_BACKEND_BASE_URL=http://127.0.0.1:8000 npm run dev
 ~~~
 
-Open <http://127.0.0.1:3000/login>.
+Open <http://127.0.0.1:3001/login>.
 
 If unchanged, the local administrator account is **admin / admin123**. These credentials are for local development only. Replace all initial passwords and use a strong JWT secret before deployment.
 
@@ -154,9 +181,10 @@ After signing in as an administrator:
 2. Create duration, session, private, or trial card templates in /cards.
 3. Purchase a card and test renewal, reissue, refund, extension, freeze, and unfreeze in /transactions.
 4. Open a member business timeline from the member list.
-5. Review transaction, write-off, and audit events, including linked write-off chains.
+5. Publish private-training slots, confirm requests, and record completed private lessons.
+6. Review operational reports, drill-down rows, and Excel exports.
 
-Pages marked **Mock** in the navigation do not persist real scheduling, private-coaching, or report data.
+Pages marked **Mock** in the navigation still use demonstration data. Private training and reports no longer carry the Mock marker and use persisted backend records.
 
 ## Testing
 
@@ -194,8 +222,8 @@ npm test runs both Vitest unit tests and Playwright end-to-end tests.
 
 Latest recorded acceptance result:
 
-- Backend: 36 tests passed, 92% coverage
-- Frontend: 6 unit tests and 4 end-to-end tests passed
+- Backend: targeted unit and contract checks passed; full contract suite currently depends on a missing archived OpenAPI fixture under `openspec/changes/group-class-booking-loop/contracts/`.
+- Frontend: unit tests, focused private-training/reporting E2E, ESLint, TypeScript type checking, and production build passed in the latest local verification.
 - ESLint, TypeScript type checking, and production build passed
 
 ## Observability

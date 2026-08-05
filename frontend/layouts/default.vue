@@ -4,11 +4,12 @@ const menu = computed(() => {
   if (user.value?.role === "member") {
     return [
       { to: "/schedule", label: "团课课表", mock: false },
+      { to: "/private-training", label: "私教预约", mock: false },
       { to: "/my-bookings", label: "我的预约", mock: false },
     ]
   }
   if (user.value?.role === "coach") {
-    return [{ to: "/schedule", label: "我的课表", mock: false }]
+    return [{ to: "/schedule", label: "我的课表", mock: false }, { to: "/private-training", label: "私教工作台", mock: false }]
   }
   return [
     { to: "/", label: "运营看板", mock: true },
@@ -16,8 +17,8 @@ const menu = computed(() => {
     { to: "/cards", label: "卡项管理", mock: false },
     { to: "/transactions", label: "卡项办理", mock: false },
     { to: "/schedule", label: "团课课表", mock: false },
-    { to: "/private-training", label: "私教预约", mock: true },
-    { to: "/reports", label: "统计报表", mock: true },
+    { to: "/private-training", label: "私教预约", mock: false },
+    { to: "/reports", label: "统计报表", mock: false },
   ]
 })
 </script>

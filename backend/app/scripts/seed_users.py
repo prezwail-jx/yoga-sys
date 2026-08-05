@@ -12,7 +12,8 @@ def seed_user(username: str, password: str, role: str) -> None:
     with unit_of_work() as session:
         user = session.scalar(select(AdminUser).where(AdminUser.username == username))
         if user is None:
-            session.add(AdminUser(username=username, password_hash=get_password_hash(password), role=role))
+            user = AdminUser(username=username, password_hash=get_password_hash(password), role=role)
+            session.add(user)
         else:
             user.password_hash = get_password_hash(password)
             user.role = role

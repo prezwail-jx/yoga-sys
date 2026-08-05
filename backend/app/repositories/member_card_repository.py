@@ -39,6 +39,7 @@ class MemberCardRepository:
         for_update: bool = False,
         include_pending: bool = False,
         course_id: UUID | None = None,
+        applicable_scope: str = "group",
     ) -> list[MemberCard]:
         statuses = ["active"]
         if include_pending:
@@ -62,8 +63,17 @@ class MemberCardRepository:
         if for_update:
             stmt = stmt.with_for_update()
         cards = list(self.session.scalars(stmt).all())
+        if applicable_scope == "private":
+            return [
+                card for card in cards
+                if (card.terms_snapshot or {}).get("applicableCourseScope") == "private"
+                or card.card_type == "private"
+            ]
         if course_id is None:
-            return cards
+            return [
+                card for card in cards
+                if (card.terms_snapshot or {}).get("applicableCourseScope") in {"group", None}
+            ]
         course_ref = str(course_id)
         return [
             card for card in cards

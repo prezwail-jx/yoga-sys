@@ -13,6 +13,7 @@ from app.domain.class_session import ClassSession
 from app.domain.course import Course
 from app.domain.member_card import MemberCard
 from app.domain.member_timeline_view import MemberTimelineView
+from app.domain.private_training import PrivateBooking
 from app.domain.writeoff_event import WRITE_OFF_EVENT_TYPES, WriteOffEvent
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
@@ -70,12 +71,14 @@ class MemberTimelineService:
                 cast(literal(None), String).label("reason"), WriteOffEvent.operator_id.label("operator_id"),
                 WriteOffEvent.operator_role.label("operator_role"), literal("writeoff_event").label("object_type"),
                 cast(WriteOffEvent.id, String).label("object_id"), literal(1).label("source_priority"),
-                Course.name.label("booking_course_name"),
+                func.coalesce(Course.name, cast(PrivateBooking.id, String)).label("booking_course_name"),
             ).outerjoin(
                 ClassBooking, cast(ClassBooking.id, String) == WriteOffEvent.business_ref
             ).outerjoin(
                 ClassSession, ClassSession.id == ClassBooking.class_session_id
-            ).outerjoin(Course, Course.id == ClassSession.course_id).where(*filters))
+            ).outerjoin(Course, Course.id == ClassSession.course_id).outerjoin(
+                PrivateBooking, cast(PrivateBooking.id, String) == WriteOffEvent.business_ref
+            ).where(*filters))
         if actor_role == "admin" and category in {"all", "audit"} and not business_ref:
             filters = [
                 AuditLog.member_id == member_id,
@@ -138,4 +141,7 @@ class MemberTimelineService:
     @staticmethod
     def _summary(action: str, course_name: str | None) -> str:
         label = ACTION_LABELS.get(action, action)
+        if course_name and len(course_name) == 36:
+            label = "私教" + label
+            course_name = None
         return f"{label} · {course_name}" if course_name else label

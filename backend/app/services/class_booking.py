@@ -13,6 +13,7 @@ from app.infra.observability import business_span
 from app.repositories.class_booking import ClassBookingRepository
 from app.repositories.class_session import ClassSessionRepository
 from app.services.writeoff_service import WriteOffService
+from app.repositories.private_training import PrivateTrainingRepository
 
 if TYPE_CHECKING:
     from app.api.deps.auth import CurrentUser
@@ -25,11 +26,13 @@ class ClassBookingService:
         booking_repo: ClassBookingRepository,
         session_repo: ClassSessionRepository,
         writeoff_service: WriteOffService,
+        private_repo: PrivateTrainingRepository | None = None,
     ):
         self.session = session
         self.booking_repo = booking_repo
         self.session_repo = session_repo
         self.writeoff_service = writeoff_service
+        self.private_repo = private_repo
 
     def create(
         self,
@@ -73,6 +76,10 @@ class ClassBookingService:
                 exclude_session_id=session_id,
             ):
                 raise HTTPException(status_code=409, detail="Member has an overlapping class booking")
+            if self.private_repo and self.private_repo.member_has_private_overlap(
+                effective_member_id, class_session.start_at, class_session.end_at,
+            ):
+                raise HTTPException(status_code=409, detail="Member has an overlapping private booking")
             booking = self.booking_repo.create(ClassBooking(
                 class_session_id=session_id,
                 member_id=effective_member_id,

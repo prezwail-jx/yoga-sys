@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 from app.domain.class_session import ClassSession
 from app.repositories.class_catalog import CoachProfileRepository, CourseRepository, RoomRepository
 from app.repositories.class_session import ClassSessionRepository
+from app.repositories.private_training import PrivateTrainingRepository
 from app.schemas.class_scheduling import CreateClassSessionRequest, UpdateClassSessionRequest
 
 
@@ -28,11 +29,13 @@ class ClassSchedulingService:
         course_repo: CourseRepository,
         room_repo: RoomRepository,
         coach_repo: CoachProfileRepository,
+        private_repo: PrivateTrainingRepository | None = None,
     ):
         self.session_repo = session_repo
         self.course_repo = course_repo
         self.room_repo = room_repo
         self.coach_repo = coach_repo
+        self.private_repo = private_repo
 
     @staticmethod
     def _week_bounds(week_start: date) -> tuple[datetime, datetime]:
@@ -94,6 +97,8 @@ class ClassSchedulingService:
         )
         if reason:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=reason)
+        if self.private_repo and self.private_repo.coach_has_private_overlap(coach_id, start_at, end_at):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="coach_private_time_conflict")
 
     def create(self, request: CreateClassSessionRequest, actor_id: str) -> dict:
         values = request.model_dump()
@@ -213,9 +218,14 @@ class ClassSchedulingService:
             return "room_disabled"
         if source.capacity > room.capacity:
             return "room_capacity_exceeded"
-        return self.session_repo.conflict_reason(
+        reason = self.session_repo.conflict_reason(
             coach_id=source.coach_profile_id,
             room_id=source.room_id,
             start_at=start_at,
             end_at=end_at,
         )
+        if reason:
+            return reason
+        if self.private_repo and self.private_repo.coach_has_private_overlap(source.coach_profile_id, start_at, end_at):
+            return "coach_private_time_conflict"
+        return None

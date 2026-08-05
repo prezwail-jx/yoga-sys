@@ -34,6 +34,7 @@ class WriteOffService:
         trace_id: str,
         today: date,
         course_id: UUID | None = None,
+        applicable_scope: str = "group",
         force_refund: bool = False,
     ) -> WriteOffEvent:
         self.writeoff_repo.lock_chain(business_ref)
@@ -48,7 +49,7 @@ class WriteOffService:
         if event_type == "reserve_hold" and member.status != "normal":
             raise HTTPException(status_code=409, detail="Member status does not allow write-off")
         if event_type == "reserve_hold":
-            return self._reserve(member_id, business_ref, user, idempotency_key, trace_id, today, course_id)
+            return self._reserve(member_id, business_ref, user, idempotency_key, trace_id, today, course_id, applicable_scope)
         if event_type not in TERMINAL_EVENT_TYPES:
             raise HTTPException(status_code=422, detail="Unsupported write-off event")
         return self._terminal(
@@ -56,9 +57,10 @@ class WriteOffService:
             force_refund=force_refund,
         )
 
-    def _reserve(self, member_id, business_ref, user, key, trace_id, today, course_id):
+    def _reserve(self, member_id, business_ref, user, key, trace_id, today, course_id, applicable_scope):
         cards = self.card_repo.list_fefo_candidates(
-            member_id, today, for_update=True, include_pending=True, course_id=course_id
+            member_id, today, for_update=True, include_pending=True,
+            course_id=course_id, applicable_scope=applicable_scope,
         )
         cards = [
             card for card in cards

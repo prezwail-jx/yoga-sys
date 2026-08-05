@@ -1,4 +1,4 @@
-import type { AccountBinding, AccountBindingInput, BookingRecord, CancelClassBookingInput, CardProduct, CardProductInput, CardProductList, ClassBooking, ClassBookingList, ClassSession, ClassSessionInput, ClassSessionList, CoachProfile, CoachProfileInput, CoachProfileList, CoachSlot, CopyWeekInput, CopyWeekResult, Course, CourseInput, CourseList, CourseSession, CreateClassBookingInput, Member, MemberCardList, MemberInput, MemberList, MemberStatus, ReportSummary, Room, RoomInput, RoomList, TimelineList, TimelineQuery, TransactionInput, TransactionOperation, WriteOffEvent, WriteOffEventType } from "~/types/domain"
+import type { AccountBinding, AccountBindingInput, CancelClassBookingInput, CardProduct, CardProductInput, CardProductList, ClassBooking, ClassBookingList, ClassSession, ClassSessionInput, ClassSessionList, CoachProfile, CoachProfileInput, CoachProfileList, CopyWeekInput, CopyWeekResult, Course, CourseInput, CourseList, CourseSession, CreateClassBookingInput, Member, MemberCardList, MemberInput, MemberList, MemberStatus, PrivateBooking, PrivateBookingDecisionInput, PrivateBookingInput, PrivateBookingList, PrivateLessonRecordInput, PrivateSlot, PrivateSlotInput, PrivateSlotList, PrivateWeekInput, PrivateWeekResult, ReportDetail, ReportDetailCategory, ReportQuery, ReportSummary, ReportTrend, ReportTrendCategory, Room, RoomInput, RoomList, TimelineList, TimelineQuery, TransactionInput, TransactionOperation, WriteOffEvent, WriteOffEventType } from "~/types/domain"
 
 type CatalogQuery = { keyword?: string; enabled?: boolean; skip?: number; limit?: number }
 
@@ -59,8 +59,31 @@ export function useGymApi() {
   const createMemberAccount = (memberId: string, payload: AccountBindingInput, idempotencyKey: string) => request<AccountBinding>(`/members/${memberId}/account`, { method: "POST", body: payload, headers: { "Idempotency-Key": idempotencyKey } })
   const createCoachAccount = (coachId: string, payload: AccountBindingInput, idempotencyKey: string) => request<AccountBinding>(`/coaches/${coachId}/account`, { method: "POST", body: payload, headers: { "Idempotency-Key": idempotencyKey } })
   const getSchedule = () => request<CourseSession[]>("/schedule")
-  const getPrivateSlots = () => request<CoachSlot[]>("/private-slots")
-  const getBookings = () => request<BookingRecord[]>("/bookings")
-  const getReportSummary = () => request<ReportSummary>("/reports/summary")
-  return { getMeta, getMembers, getMember, createMember, updateMember, deleteMember, getCards, createCard, updateCard, getMemberCards, createTransaction, freezeMemberCard, unfreezeMemberCard, getMemberTimeline, createWriteOffEvent, getCourses, getCourse, createCourse, updateCourse, getRooms, getRoom, createRoom, updateRoom, getCoaches, getCoach, createCoach, updateCoach, getClassSessions, getClassSession, createClassSession, updateClassSession, publishClassSession, pauseClassSession, resumeClassSession, cancelClassSession, completeClassSession, copyClassSessionWeek, getClassSessionBookings, createClassBooking, createMemberClassBooking, createAdminClassBooking, cancelClassBooking, checkInClassBooking, getMyClassBookings, createMemberAccount, createCoachAccount, getSchedule, getPrivateSlots, getBookings, getReportSummary }
+  const getPrivateSlots = (params: ReportQuery = {}) => request<PrivateSlotList>(`/private-slots?${queryString(params)}`)
+  const createPrivateSlot = (payload: PrivateSlotInput) => request<PrivateSlot>("/private-slots", { method: "POST", body: payload })
+  const updatePrivateSlot = (id: string, payload: PrivateSlotInput) => request<PrivateSlot>(`/private-slots/${id}`, { method: "PATCH", body: payload })
+  const deletePrivateSlot = (id: string) => request<PrivateSlot>(`/private-slots/${id}`, { method: "DELETE" })
+  const generatePrivateWeek = (payload: PrivateWeekInput, key: string) => request<PrivateWeekResult>("/private-slots/generate-week", { method: "POST", body: payload, headers: { "Idempotency-Key": key } })
+  const getPrivateBookings = (params: { status?: string; skip?: number; limit?: number } = {}) => request<PrivateBookingList>(`/private-bookings?${queryString(params)}`)
+  const createPrivateBooking = (payload: PrivateBookingInput, key: string) => request<PrivateBooking>("/private-bookings", { method: "POST", body: payload, headers: { "Idempotency-Key": key } })
+  const confirmPrivateBooking = (id: string, key: string) => request<PrivateBooking>(`/private-bookings/${id}/confirm`, { method: "POST", headers: { "Idempotency-Key": key } })
+  const rejectPrivateBooking = (id: string, payload: PrivateBookingDecisionInput, key: string) => request<PrivateBooking>(`/private-bookings/${id}/reject`, { method: "POST", body: payload, headers: { "Idempotency-Key": key } })
+  const cancelPrivateBooking = (id: string, payload: PrivateBookingDecisionInput, key: string) => request<PrivateBooking>(`/private-bookings/${id}/cancel`, { method: "POST", body: payload, headers: { "Idempotency-Key": key } })
+  const signInPrivateBooking = (id: string, payload: PrivateLessonRecordInput, key: string) => request<PrivateBooking>(`/private-bookings/${id}/sign-in`, { method: "POST", body: payload, headers: { "Idempotency-Key": key } })
+  const getReportSummary = (params: ReportQuery = {}) => request<ReportSummary>(`/reports/summary?${queryString(params)}`)
+  const getReportTrend = (category: ReportTrendCategory, params: ReportQuery = {}) => request<ReportTrend>(`/reports/trends?${queryString({ category, ...params })}`)
+  const getReportDetail = (category: ReportDetailCategory, params: ReportQuery & { skip?: number; limit?: number } = {}) => request<ReportDetail>(`/reports/details/${category}?${queryString(params)}`)
+  const exportReport = async (category: ReportDetailCategory, params: ReportQuery = {}) => {
+    const response = await $fetch.raw(`/api/reports/export?${queryString({ category, ...params })}`, { responseType: "blob" })
+    const blob = response._data as unknown as Blob
+    const disposition = response.headers.get("content-disposition") || ""
+    const filename = disposition.match(/filename="?([^";]+)"?/)?.[1] || `report-${category}.xlsx`
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = filename
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+  return { getMeta, getMembers, getMember, createMember, updateMember, deleteMember, getCards, createCard, updateCard, getMemberCards, createTransaction, freezeMemberCard, unfreezeMemberCard, getMemberTimeline, createWriteOffEvent, getCourses, getCourse, createCourse, updateCourse, getRooms, getRoom, createRoom, updateRoom, getCoaches, getCoach, createCoach, updateCoach, getClassSessions, getClassSession, createClassSession, updateClassSession, publishClassSession, pauseClassSession, resumeClassSession, cancelClassSession, completeClassSession, copyClassSessionWeek, getClassSessionBookings, createClassBooking, createMemberClassBooking, createAdminClassBooking, cancelClassBooking, checkInClassBooking, getMyClassBookings, createMemberAccount, createCoachAccount, getSchedule, getPrivateSlots, createPrivateSlot, updatePrivateSlot, deletePrivateSlot, generatePrivateWeek, getPrivateBookings, createPrivateBooking, confirmPrivateBooking, rejectPrivateBooking, cancelPrivateBooking, signInPrivateBooking, getReportSummary, getReportTrend, getReportDetail, exportReport }
 }

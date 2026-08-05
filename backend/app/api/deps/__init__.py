@@ -9,6 +9,7 @@ from app.repositories.class_catalog import CoachProfileRepository, CourseReposit
 from app.repositories.class_session import ClassSessionRepository
 from app.repositories.class_booking import ClassBookingRepository
 from app.repositories.member_card_repository import MemberCardRepository
+from app.repositories.private_training import PrivateTrainingRepository
 from app.repositories.writeoff_repository import WriteOffRepository
 from app.repositories.member import MemberRepository
 from app.services.auth import AuthService
@@ -19,6 +20,8 @@ from app.services.account_binding import AccountBindingService
 from app.services.class_booking import ClassBookingService
 from app.services.writeoff_service import WriteOffService
 from app.services.member import MemberService
+from app.services.private_training import PrivateTrainingService
+from app.services.reporting import ReportingService
 
 
 def get_admin_user_repo(session: Session = Depends(get_session)) -> AdminUserRepository:
@@ -54,7 +57,7 @@ def get_class_catalog_service(session: Session = Depends(get_session)) -> ClassC
 def get_class_scheduling_service(session: Session = Depends(get_session)) -> ClassSchedulingService:
     return ClassSchedulingService(
         ClassSessionRepository(session), CourseRepository(session),
-        RoomRepository(session), CoachProfileRepository(session),
+        RoomRepository(session), CoachProfileRepository(session), PrivateTrainingRepository(session),
     )
 
 
@@ -70,8 +73,27 @@ def get_class_booking_service(session: Session = Depends(get_session)) -> ClassB
         session, member_repo, MemberCardRepository(session), WriteOffRepository(session)
     )
     return ClassBookingService(
-        session, ClassBookingRepository(session), ClassSessionRepository(session), writeoff_service
+        session, ClassBookingRepository(session), ClassSessionRepository(session), writeoff_service,
+        PrivateTrainingRepository(session),
     )
+
+
+def get_private_training_service(session: Session = Depends(get_session)) -> PrivateTrainingService:
+    member_repo = MemberRepository(session)
+    writeoff_service = WriteOffService(
+        session, member_repo, MemberCardRepository(session), WriteOffRepository(session)
+    )
+    return PrivateTrainingService(
+        session,
+        PrivateTrainingRepository(session),
+        member_repo,
+        CoachProfileRepository(session),
+        writeoff_service,
+    )
+
+
+def get_reporting_service(session: Session = Depends(get_session)) -> ReportingService:
+    return ReportingService(session)
 
 
 get_current_admin = require_roles("admin")
@@ -87,4 +109,6 @@ __all__ = [
     "get_class_scheduling_service",
     "get_account_binding_service",
     "get_class_booking_service",
+    "get_private_training_service",
+    "get_reporting_service",
 ]
