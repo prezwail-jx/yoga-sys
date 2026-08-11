@@ -32,8 +32,15 @@
 
 ## 结果总结
 
-待执行后补充。
+- 新增前端多阶段 Dockerfile（node:24-slim，固定 npm@11.6.2 以匹配 lockfile，保证 `npm ci` 可复现）。
+- 后端镜像启动只运行 uvicorn，不再自动迁移/seed；seed 增加生产守卫。
+- 小程序 trial/release API 基址改为 `https://yoga.tuitukj.com/backend`。
+- 新增 compose.prod.yml、Nginx bootstrap/production 配置、env 示例、备份与恢复脚本、部署 README。
+- 提交 `b2f8d8b`（生产部署栈）与 `dd9c832`（前端构建修复）已双平台推送。
+- 应用镜像 `yoga-sys-backend:dd9c832`、`yoga-sys-frontend:dd9c832` 构建并冒烟通过；基础镜像 postgres:16、nginx:alpine、certbot/certbot:v5.7.0 固定 amd64。
+- 离线包：`dist/yoga-sys-release-dd9c832-linux-amd64.tar.gz`（513M）与校验文件已生成并验证。
 
 ## 后续跟进
 
-- 服务器安装 Docker、加载镜像、签发证书、微信后台合法域名与真机验收。
+- 服务器安装 Docker、`docker load`、写入 `/srv/yoga-sys/env/*.env`、`alembic upgrade head`、一次性 seed、certbot 签发证书。
+- 微信后台添加合法域名 `https://yoga.tuitukj.com`，真机验收后进入提审。
