@@ -82,6 +82,25 @@ describe("SessionService", () => {
     expect(JSON.stringify([...runtime.storage.entries()])).not.toContain("one-time-password")
   })
 
+  it("stores only the intended ticket boundary while binding is pending", async () => {
+    const runtime = new FakeRuntime()
+    const { session } = services(runtime)
+    runtime.requestHandler = (options) => options.success({
+      data: { state: "binding_required", bindingTicket: "opaque-ticket", expiresIn: 600 },
+      statusCode: 200,
+      header: {},
+    })
+
+    await session.bootstrap()
+
+    const serialized = JSON.stringify([...runtime.storage.entries()])
+    expect(serialized).toContain("opaque-ticket")
+    expect(serialized).not.toContain("wx-login-code")
+    expect(serialized).not.toContain("session_key")
+    expect(serialized).not.toContain("openid")
+    expect(serialized).not.toContain("password")
+  })
+
   it("rejects expired tickets before sending credentials", async () => {
     const runtime = new FakeRuntime()
     const { storage, session } = services(runtime)

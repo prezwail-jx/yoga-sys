@@ -1,9 +1,8 @@
 from datetime import date, datetime, time, timedelta, timezone
-from decimal import Decimal
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import BigInteger, DateTime, Integer, Numeric, String, Uuid, cast, func, literal, or_, select, union_all
+from sqlalchemy import Integer, Numeric, String, Uuid, cast, func, literal, or_, select, union_all
 from sqlalchemy.orm import Session
 
 from app.domain.audit_log import AuditLog

@@ -80,11 +80,11 @@
 
 ## 10. Automated Security And Regression Gates
 
-- [ ] 10.1 Verify repeated and concurrent Mini Program mutations preserve booking, writeoff, private-training, row-lock, and idempotency invariants
-- [ ] 10.2 Scan source, responses, logs, traces, and client storage to verify AppSecret, password, JWT, raw ticket, raw OpenID, and `session_key` are not exposed outside their intended boundary
-- [ ] 10.3 Run backend unit, PostgreSQL integration, migration, OpenAPI, lint, and type checks and resolve regressions attributable to this change
-- [ ] 10.4 Run Mini Program lint, type checks, unit tests, page/component interaction tests, and production package build
-- [ ] 10.5 Run existing Nuxt unit, Playwright, lint, typecheck, and production build suites to confirm administrator and browser workflows remain operational
+- [x] 10.1 Verify repeated and concurrent Mini Program mutations preserve booking, writeoff, private-training, row-lock, and idempotency invariants
+- [x] 10.2 Scan source, responses, logs, traces, and client storage to verify AppSecret, password, JWT, raw ticket, raw OpenID, and `session_key` are not exposed outside their intended boundary
+- [x] 10.3 Run backend unit, PostgreSQL integration, migration, OpenAPI, lint, and type checks and resolve regressions attributable to this change
+- [x] 10.4 Run Mini Program lint, type checks, unit tests, page/component interaction tests, and production package build
+- [x] 10.5 Run existing Nuxt unit, Playwright, lint, typecheck, and production build suites to confirm administrator and browser workflows remain operational
 
 ## 11. Production Infrastructure And Real-Device Release Gates
 

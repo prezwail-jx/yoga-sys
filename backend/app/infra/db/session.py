@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
-
-from dotenv import load_dotenv
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Generator
 
-load_dotenv(Path(__file__).resolve().parents[3] / ".env")
-
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
+
+load_dotenv(Path(__file__).resolve().parents[3] / ".env")
 
 
 DATABASE_URL = os.getenv(

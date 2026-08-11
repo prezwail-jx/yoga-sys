@@ -1,4 +1,3 @@
-from uuid import UUID
 
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session

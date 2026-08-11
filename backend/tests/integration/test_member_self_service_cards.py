@@ -1,17 +1,27 @@
 from datetime import date, timedelta
 
+import pytest
 from sqlalchemy import select
 
+from app.api.deps.business_clock import get_business_today
 from app.core.security import create_access_token
 from app.domain.audit_log import AuditLog
 from app.domain.member import Member
 from app.domain.member_card import MemberCard
+from app.main import app
 
 TODAY = date(2026, 8, 6)
 
 SELF_FIELDS = {"id", "productName", "cardType", "status",
                "remainingTimes", "openedOn", "expiresOn",
                "frozenFrom", "frozenUntil"}
+
+
+@pytest.fixture(autouse=True)
+def fixed_business_date():
+    app.dependency_overrides[get_business_today] = lambda: TODAY
+    yield
+    app.dependency_overrides.pop(get_business_today, None)
 
 def _member_headers(member_id: str) -> dict[str, str]:
     token = create_access_token(

@@ -89,7 +89,9 @@ test("管理员可以为会员开通资源绑定账号", async ({ page }) => {
 
   await page.goto("/login")
   await page.getByRole("button", { name: "登录" }).click()
-  await page.getByRole("button", { name: "开通账号" }).click()
+  const memberRow = page.getByRole("row").filter({ hasText: "测试会员" })
+  await memberRow.getByRole("button", { name: "业务管理" }).click()
+  await expect(page.getByRole("heading", { name: "测试会员 · 业务管理" })).toBeVisible()
   await page.getByLabel("用户名").fill("member001")
   await page.getByLabel("初始密码").fill("member123")
   await page.getByRole("button", { name: "确认开通" }).click()

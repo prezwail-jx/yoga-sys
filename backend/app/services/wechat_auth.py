@@ -204,7 +204,7 @@ class WechatAuthService:
         return WechatAuthOutcome(200, WechatBindResponse(access_token=login.access_token, role=login.role))
 
     def _challenge_error(self, exc: Exception, trace_id: str) -> WechatAuthOutcome:
-        mapping = {
+        mapping: dict[type[Exception], tuple[int, str, str]] = {
             WechatChallengeNotFound: (404, WechatErrorCode.CHALLENGE_NOT_FOUND, "Binding ticket was not found"),
             WechatChallengeConsumed: (409, WechatErrorCode.CHALLENGE_CONSUMED, "Binding ticket was already used"),
             WechatChallengeExpired: (410, WechatErrorCode.CHALLENGE_EXPIRED, "Binding ticket has expired"),

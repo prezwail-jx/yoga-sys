@@ -22,11 +22,37 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+  "mypy>=1.17.0",
   "pytest>=8.3.0",
   "pytest-cov>=6.0.0",
+  "ruff>=0.12.0",
   "schemathesis>=3.39.0",
   "testcontainers[postgres]>=4.9.0",
   "pyyaml>=6.0",
+]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+follow_imports = "silent"
+files = [
+  "app/api/endpoints/auth.py",
+  "app/api/routes/account_bindings.py",
+  "app/core/wechat_config.py",
+  "app/domain/wechat_identity.py",
+  "app/infra/observability.py",
+  "app/integrations/wechat.py",
+  "app/repositories/wechat_identity.py",
+  "app/schemas/wechat_auth.py",
+  "app/services/rate_limit.py",
+  "app/services/wechat_auth.py",
+  "app/services/wechat_binding_recovery.py",
 ]
 
 [build-system]

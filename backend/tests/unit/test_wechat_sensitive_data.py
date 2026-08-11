@@ -1,8 +1,16 @@
 import hashlib
+import json
 import re
+from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from app.api.middleware.request_context import RequestContextMiddleware
+from app.infra.observability import redact_sensitive_fields
 
 # ----------------------------------------------------------------
 # 脱敏扫描工具 — 检查字符串 / dict / 列表中是否意外出现敏感值
@@ -168,3 +176,135 @@ class TestDigestsAreNotReversible:
         digest = wechat_ticket_digest(config, raw_ticket)
         assert raw_ticket not in digest
         assert hashlib.sha256(raw_ticket.encode()).hexdigest() != digest
+
+
+class _RecordingSpan:
+    def __init__(self) -> None:
+        self.attributes: dict[str, Any] = {}
+
+    def get_span_context(self):
+        return SimpleNamespace(span_id=1)
+
+    def set_attribute(self, key: str, value: Any) -> None:
+        self.attributes[key] = value
+
+    def set_status(self, _status: Any) -> None:
+        return None
+
+    def record_exception(self, _exc: Exception) -> None:
+        return None
+
+
+class _SpanContext:
+    def __init__(self, span: _RecordingSpan) -> None:
+        self.span = span
+
+    def __enter__(self) -> _RecordingSpan:
+        return self.span
+
+    def __exit__(self, *_args: Any) -> None:
+        return None
+
+
+class _RecordingTracer:
+    def __init__(self) -> None:
+        self.span = _RecordingSpan()
+
+    def start_as_current_span(self, _name: str) -> _SpanContext:
+        return _SpanContext(self.span)
+
+
+class _RecordingLogger:
+    def __init__(self) -> None:
+        self.events: list[dict[str, Any]] = []
+
+    def info(self, event: str, **values: Any) -> None:
+        self.events.append({"event": event, **values})
+
+
+class TestObservabilityBoundaries:
+    def test_structured_log_processor_redacts_nested_sensitive_fields(self):
+        event = {
+            "event": "probe",
+            "authorization": "Bearer secret-jwt",
+            "request": {
+                "password": "secret-password",
+                "bindingTicket": "secret-ticket",
+                "safe": "visible",
+            },
+            "items": [{"session_key": "secret-session"}],
+        }
+
+        redacted = redact_sensitive_fields(None, "info", event)
+
+        serialized = json.dumps(redacted)
+        assert "secret-jwt" not in serialized
+        assert "secret-password" not in serialized
+        assert "secret-ticket" not in serialized
+        assert "secret-session" not in serialized
+        assert redacted["request"]["safe"] == "visible"
+
+    def test_request_middleware_does_not_trace_headers_query_or_body(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        tracer = _RecordingTracer()
+        logger = _RecordingLogger()
+        monkeypatch.setattr(
+            "app.api.middleware.request_context.get_tracer", lambda: tracer
+        )
+        monkeypatch.setattr(
+            "app.api.middleware.request_context.get_logger", lambda: logger
+        )
+        app = FastAPI()
+        app.add_middleware(RequestContextMiddleware)
+
+        @app.post("/probe")
+        def probe():
+            return {"state": "safe"}
+
+        canaries = [
+            "secret-app-value",
+            "secret-password-value",
+            "secret-jwt-value",
+            "secret-ticket-value",
+            "secret-openid-value",
+            "secret-session-value",
+        ]
+        response = TestClient(app).post(
+            "/probe?bindingTicket=secret-ticket-value",
+            headers={
+                "Authorization": "Bearer secret-jwt-value",
+                "X-App-Secret": "secret-app-value",
+                "X-Trace-Id": "safe-trace-id",
+            },
+            json={
+                "password": "secret-password-value",
+                "openid": "secret-openid-value",
+                "session_key": "secret-session-value",
+            },
+        )
+
+        assert response.json() == {"state": "safe"}
+        observed = json.dumps(
+            {"logs": logger.events, "spans": tracer.span.attributes}
+        )
+        assert all(canary not in observed for canary in canaries)
+        assert tracer.span.attributes["url.path"] == "/probe"
+
+    def test_production_source_contains_no_embedded_wechat_secret_or_jwt(self):
+        backend_root = Path(__file__).resolve().parents[2] / "app"
+        miniapp_root = Path(__file__).resolve().parents[3] / "miniapp" / "miniprogram"
+        source = "\n".join(
+            path.read_text(encoding="utf-8")
+            for root in (backend_root, miniapp_root)
+            for pattern in ("*.py", "*.ts")
+            for path in root.rglob(pattern)
+        )
+        forbidden = {
+            "embedded AppSecret": r"WECHAT_APP_SECRET\s*=\s*['\"][^'\"]+",
+            "embedded identity pepper": r"WECHAT_IDENTITY_PEPPER\s*=\s*['\"][^'\"]+",
+            "embedded JWT": r"eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+",
+        }
+
+        findings = [name for name, pattern in forbidden.items() if re.search(pattern, source)]
+        assert not findings, f"production source contains sensitive literals: {findings}"

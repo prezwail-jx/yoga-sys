@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import String, Numeric, Integer, Boolean, DateTime, func, text, Enum, Uuid, JSON
+from sqlalchemy import String, Numeric, Integer, Boolean, DateTime, func, Enum, Uuid, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.domain.base import Base

@@ -1,12 +1,10 @@
-from dataclasses import dataclass
-from datetime import datetime, timezone
 from types import SimpleNamespace
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import jwt
 import pytest
 
-from app.core.security import ALGORITHM, SECRET_KEY, create_access_token, get_password_hash
+from app.core.security import ALGORITHM, SECRET_KEY, get_password_hash
 from app.schemas.auth import LoginRequest
 from app.services.auth import AuthService
 

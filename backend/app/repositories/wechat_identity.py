@@ -211,4 +211,4 @@ class WechatIdentityRepository:
             )
         )
         self.session.flush()
-        return int(result.rowcount or 0)
+        return int(getattr(result, "rowcount", 0) or 0)

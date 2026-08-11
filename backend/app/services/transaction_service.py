@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 
 from app.api.audit import record_audit
 from app.domain.card_transaction import CardTransaction

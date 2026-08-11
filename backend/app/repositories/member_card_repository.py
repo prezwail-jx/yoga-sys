@@ -1,7 +1,7 @@
 from datetime import date
 from uuid import UUID
 
-from sqlalchemy import case, func, or_, select
+from sqlalchemy import case, or_, select
 from sqlalchemy.orm import Session
 
 from app.domain.member_card import MemberCard
