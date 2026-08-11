@@ -5,7 +5,10 @@ const TOKEN_KEY = "yoga.auth.token"
 const USER_KEY = "yoga.auth.user"
 const BINDING_KEY = "yoga.auth.binding"
 const SIGNED_OUT_KEY = "yoga.auth.signed_out"
+const AUTH_MODE_KEY = "yoga.auth.mode"
 const IDEMPOTENCY_PREFIX = "yoga.idempotency."
+
+export type AuthMode = "wechat" | "password"
 
 export interface BindingChallenge {
   ticket: string
@@ -64,6 +67,19 @@ export class StorageService {
     this.runtime.removeStorageSync(SIGNED_OUT_KEY)
   }
 
+  authMode(): AuthMode | null {
+    const value = this.runtime.getStorageSync(AUTH_MODE_KEY)
+    return value === "wechat" || value === "password" ? value : null
+  }
+
+  setAuthMode(mode: AuthMode): void {
+    this.runtime.setStorageSync(AUTH_MODE_KEY, mode)
+  }
+
+  clearAuthMode(): void {
+    this.runtime.removeStorageSync(AUTH_MODE_KEY)
+  }
+
   pendingIdempotency(operationId: string): PendingIdempotency | null {
     const value = this.runtime.getStorageSync(`${IDEMPOTENCY_PREFIX}${operationId}`)
     return value && typeof value === "object" ? value as PendingIdempotency : null
@@ -75,6 +91,15 @@ export class StorageService {
 
   clearPendingIdempotency(operationId: string): void {
     this.runtime.removeStorageSync(`${IDEMPOTENCY_PREFIX}${operationId}`)
+  }
+
+  clearUnauthorizedSession(): void {
+    const mode = this.authMode()
+    this.clearSession()
+    if (mode === "password") {
+      this.clearAuthMode()
+      this.markSignedOut()
+    }
   }
 
   clearSession(): void {

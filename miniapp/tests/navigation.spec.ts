@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { NavigationService, navigationForRole } from "../miniprogram/services/navigation"
-import { apiBaseUrl } from "../miniprogram/config/environment"
+import { apiBaseUrl, passwordLoginEnabled } from "../miniprogram/config/environment"
 import { FakeRuntime } from "./helpers/fake-runtime"
 
 describe("role routing", () => {
@@ -29,5 +29,14 @@ describe("role routing", () => {
     expect(apiBaseUrl(runtime)).toBe("http://127.0.0.1:8000")
     runtime.envVersion = "release"
     expect(apiBaseUrl(runtime)).toBe("https://yoga.tuitukj.com/backend")
+  })
+
+  it("enables password login only in development and trial builds", () => {
+    const runtime = new FakeRuntime()
+    expect(passwordLoginEnabled(runtime)).toBe(true)
+    runtime.envVersion = "trial"
+    expect(passwordLoginEnabled(runtime)).toBe(true)
+    runtime.envVersion = "release"
+    expect(passwordLoginEnabled(runtime)).toBe(false)
   })
 })

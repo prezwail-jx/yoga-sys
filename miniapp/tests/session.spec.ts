@@ -68,6 +68,7 @@ describe("SessionService", () => {
     expect(storage.user()).toBeNull()
     expect(storage.binding()).toBeNull()
     expect(storage.isSignedOut()).toBe(true)
+    expect(storage.authMode()).toBeNull()
     expect(runtime.loginCalls).toBe(0)
     expect(runtime.relaunches.at(-1)).toBe("/pages/startup/index")
   })
@@ -85,8 +86,89 @@ describe("SessionService", () => {
     await session.loginAndRoute()
 
     expect(storage.isSignedOut()).toBe(false)
+    expect(storage.authMode()).toBe("wechat")
     expect(runtime.loginCalls).toBe(1)
     expect(runtime.relaunches.at(-1)).toBe("/pages/bind/index")
+  })
+
+  it("logs a member in with trial credentials without calling wx.login or creating a binding", async () => {
+    const runtime = new FakeRuntime()
+    runtime.envVersion = "trial"
+    const { storage, session } = services(runtime)
+    runtime.requestHandler = (options) => {
+      if (options.url.endsWith("/auth/login")) {
+        options.success({
+          data: { access_token: "password-token", token_type: "bearer", role: "member" },
+          statusCode: 200,
+          header: {},
+        })
+        return
+      }
+      options.success({
+        data: { username: "test.member", role: "member", memberId: "member-1" },
+        statusCode: 200,
+        header: {},
+      })
+    }
+
+    await expect(session.passwordLoginAndRoute("test.member", "password123")).resolves.toMatchObject({
+      username: "test.member",
+      role: "member",
+    })
+
+    expect(runtime.loginCalls).toBe(0)
+    expect(storage.token()).toBe("password-token")
+    expect(storage.authMode()).toBe("password")
+    expect(storage.binding()).toBeNull()
+    expect(runtime.relaunches.at(-1)).toBe("/pages/workspace/index")
+    expect(JSON.stringify([...runtime.storage.entries()])).not.toContain("password123")
+  })
+
+  it("rejects administrator credentials from Mini Program password login", async () => {
+    const runtime = new FakeRuntime()
+    runtime.envVersion = "trial"
+    const { storage, session } = services(runtime)
+    runtime.requestHandler = (options) => options.success({
+      data: { access_token: "admin-token", token_type: "bearer", role: "admin" },
+      statusCode: 200,
+      header: {},
+    })
+
+    await expect(session.passwordLoginAndRoute("admin", "password123")).rejects.toMatchObject({
+      kind: "authorization",
+    })
+    expect(storage.token()).toBeNull()
+    expect(storage.authMode()).toBeNull()
+  })
+
+  it("disables credential login in release builds", async () => {
+    const runtime = new FakeRuntime()
+    runtime.envVersion = "release"
+    const { session } = services(runtime)
+
+    await expect(session.passwordLoginAndRoute("member", "password123")).rejects.toMatchObject({
+      kind: "authorization",
+    })
+    expect(runtime.requests).toHaveLength(0)
+  })
+
+  it("returns expired password sessions to login choice without changing WeChat recovery", () => {
+    const runtime = new FakeRuntime()
+    const { storage } = services(runtime)
+    storage.setToken("password-token")
+    storage.setAuthMode("password")
+    storage.clearUnauthorizedSession()
+    expect(storage.token()).toBeNull()
+    expect(storage.authMode()).toBeNull()
+    expect(storage.isSignedOut()).toBe(true)
+
+    storage.clearSignedOut()
+    storage.setToken("wechat-token")
+    storage.setAuthMode("wechat")
+    storage.clearUnauthorizedSession()
+    expect(storage.token()).toBeNull()
+    expect(storage.authMode()).toBe("wechat")
+    expect(storage.isSignedOut()).toBe(false)
   })
 
   it("binds once, does not persist the password and routes from server role", async () => {

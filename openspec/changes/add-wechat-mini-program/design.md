@@ -184,6 +184,10 @@ Development-tool domain bypass is allowed only for local debugging and is never 
 
 The production API hostname is `yoga.tuitukj.com`. Infrastructure verification on 2026-08-05 confirmed its A record resolves to `124.220.91.149` and HTTP reaches Nginx, while HTTPS currently fails during TLS negotiation and HTTP still serves the default Nginx page. Therefore DNS, ICP备案, and public-server provisioning are complete, but certificate issuance, HTTPS redirect, reverse proxy, FastAPI runtime and health check, PostgreSQL backup, and WeChat request-domain registration remain pending.
 
+### 10. Keep password account switching outside release builds
+
+Development and trial Mini Program builds expose the existing password login as a testing option alongside WeChat login. Password login accepts only eligible member and coach accounts, stores no password, creates no WeChat identity binding, and records the authentication mode so an expired password session returns to the login chooser rather than silently switching to WeChat authentication. Release builds hide and locally reject this option, retaining WeChat as the only Mini Program login path. Administrator accounts remain unsupported in every Mini Program environment.
+
 ## Risks / Trade-offs
 
 - [Concurrent account/auth changes cause migration or merge conflicts] -> Reconcile `improve-account-member-admin-flows` first and make the WeChat table reference the final account model.

@@ -6,6 +6,7 @@ The system currently serves members and coaches through the same Nuxt operations
 
 - Add a native WeChat Mini Program client for member and coach roles.
 - Add WeChat login and first-use binding to an existing username/password account without exposing the WeChat AppSecret to clients.
+- Add a development/trial-only password login choice for switching member and coach test accounts without creating a WeChat binding; release builds remain WeChat-only.
 - Add an audited administrator unbind action so an incorrectly bound account or a user changing WeChat identity can recover without direct database changes.
 - Issue the existing role-bound JWT claims after a WeChat identity is bound, and continue enforcing member and coach resource isolation in FastAPI.
 - Add member flows for class schedules, class booking and cancellation, private-training booking and cancellation, personal booking history, and read-only card balance/status visibility.

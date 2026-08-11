@@ -19,3 +19,7 @@ export function environmentVersion(runtime: MiniProgramRuntime): EnvironmentVers
 export function apiBaseUrl(runtime: MiniProgramRuntime): string {
   return API_BASE_URLS[environmentVersion(runtime)]
 }
+
+export function passwordLoginEnabled(runtime: MiniProgramRuntime): boolean {
+  return environmentVersion(runtime) !== "release"
+}

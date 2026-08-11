@@ -1,8 +1,9 @@
 import { ApiError, type ApiClient } from "./api"
+import { passwordLoginEnabled } from "../config/environment"
 import type { NavigationService } from "./navigation"
 import type { MiniProgramRuntime } from "../platform/runtime"
 import type { StorageService } from "./storage"
-import type { CurrentUser, WechatBindResult, WechatSession } from "../types/contracts"
+import type { CurrentUser, PasswordLoginResult, WechatBindResult, WechatSession } from "../types/contracts"
 
 export type BootstrapResult =
   | { state: "authenticated"; user: CurrentUser }
@@ -26,6 +27,7 @@ function wechatCode(runtime: MiniProgramRuntime): Promise<string> {
 
 export class SessionService {
   private bindingPending = false
+  private passwordLoginPending = false
   private bootstrapPending: Promise<BootstrapResult> | null = null
 
   constructor(
@@ -57,9 +59,47 @@ export class SessionService {
     return this.storage.isSignedOut()
   }
 
+  isPasswordLoginEnabled(): boolean {
+    return passwordLoginEnabled(this.runtime)
+  }
+
+  shouldShowLoginChoice(): boolean {
+    return this.isPasswordLoginEnabled()
+      && !this.storage.token()
+      && (this.storage.isSignedOut() || this.storage.authMode() !== "wechat")
+  }
+
   loginAndRoute(): Promise<BootstrapResult> {
     this.storage.clearSignedOut()
+    this.storage.setAuthMode("wechat")
     return this.bootstrapAndRoute()
+  }
+
+  async passwordLoginAndRoute(username: string, password: string): Promise<CurrentUser> {
+    if (!this.isPasswordLoginEnabled()) {
+      throw new ApiError("正式版仅支持微信登录", "authorization", 403, "local-password-login-disabled")
+    }
+    if (this.passwordLoginPending) throw new Error("Password login is already in progress")
+    this.passwordLoginPending = true
+    try {
+      const result = await this.api.request<PasswordLoginResult>("/auth/login", {
+        method: "POST",
+        authenticated: false,
+        body: { username, password },
+      })
+      if (result.role !== "member" && result.role !== "coach") {
+        throw new ApiError("仅会员和教练账号可以登录小程序", "authorization", 403, "local-role-check")
+      }
+      this.storage.setToken(result.access_token)
+      this.storage.setAuthMode("password")
+      this.storage.clearSignedOut()
+      this.storage.clearBinding()
+      const user = await this.loadCurrentUser()
+      this.navigation.routeAuthenticated(user)
+      return user
+    } finally {
+      this.passwordLoginPending = false
+    }
   }
 
   async bindAndRoute(username: string, password: string): Promise<CurrentUser> {
@@ -77,6 +117,7 @@ export class SessionService {
         body: { bindingTicket: challenge.ticket, username, password },
       })
       this.storage.setToken(result.accessToken)
+      this.storage.setAuthMode("wechat")
       this.storage.clearBinding()
       const user = await this.loadCurrentUser()
       this.navigation.routeAuthenticated(user)
@@ -89,6 +130,7 @@ export class SessionService {
   logout(): void {
     this.storage.clearSession()
     this.storage.clearBinding()
+    this.storage.clearAuthMode()
     this.storage.markSignedOut()
     this.navigation.routeStartup()
   }
@@ -97,6 +139,7 @@ export class SessionService {
     this.storage.clearSession()
     this.storage.clearBinding()
     this.storage.clearSignedOut()
+    this.storage.setAuthMode("wechat")
     this.navigation.routeStartup()
   }
 
@@ -120,6 +163,7 @@ export class SessionService {
     })
     if (session.state === "binding_required") {
       this.storage.clearSession()
+      this.storage.setAuthMode("wechat")
       this.storage.setBinding({
         ticket: session.bindingTicket,
         expiresAt: Date.now() + session.expiresIn * 1000,
@@ -127,6 +171,7 @@ export class SessionService {
       return { state: "binding_required" }
     }
     this.storage.setToken(session.accessToken)
+    this.storage.setAuthMode("wechat")
     this.storage.clearBinding()
     return { state: "authenticated", user: await this.loadCurrentUser() }
   }

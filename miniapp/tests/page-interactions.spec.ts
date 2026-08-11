@@ -3,7 +3,10 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 const mocks = vi.hoisted(() => ({
   bindAndRoute: vi.fn(),
   isSignedOut: vi.fn(),
+  isPasswordLoginEnabled: vi.fn(),
+  shouldShowLoginChoice: vi.fn(),
   loginAndRoute: vi.fn(),
+  passwordLoginAndRoute: vi.fn(),
   logout: vi.fn(),
   bookClass: vi.fn(),
   schedule: vi.fn(),
@@ -38,7 +41,10 @@ vi.mock("../miniprogram/services", () => {
     sessionService: {
       bindAndRoute: mocks.bindAndRoute,
       isSignedOut: mocks.isSignedOut,
+      isPasswordLoginEnabled: mocks.isPasswordLoginEnabled,
+      shouldShowLoginChoice: mocks.shouldShowLoginChoice,
       loginAndRoute: mocks.loginAndRoute,
+      passwordLoginAndRoute: mocks.passwordLoginAndRoute,
       logout: mocks.logout,
     },
     storageService: { user: () => ({ role: "member" }) },
@@ -72,6 +78,8 @@ beforeAll(async () => {
 beforeEach(() => {
   vi.clearAllMocks()
   mocks.isSignedOut.mockReturnValue(false)
+  mocks.isPasswordLoginEnabled.mockReturnValue(true)
+  mocks.shouldShowLoginChoice.mockReturnValue(false)
 })
 
 describe("Mini Program page interactions", () => {
@@ -123,6 +131,36 @@ describe("Mini Program page interactions", () => {
     expect(mocks.loginAndRoute).not.toHaveBeenCalled()
   })
 
+  it("shows the trial login choice without automatically calling wx.login", () => {
+    const page = mount(definitions[2])
+    mocks.shouldShowLoginChoice.mockReturnValueOnce(true)
+
+    page.onLoad()
+
+    expect(page.data.mode).toBe("login_choice")
+    expect(page.data.accountLoginEnabled).toBe(true)
+    expect(mocks.loginAndRoute).not.toHaveBeenCalled()
+  })
+
+  it("logs in with credentials once and clears the password", async () => {
+    const page = mount(definitions[2])
+    const pending = deferred<Record<string, unknown>>()
+    mocks.passwordLoginAndRoute.mockReturnValueOnce(pending.promise)
+    page.data.username = "test.member"
+    page.data.password = "password123"
+
+    const first = page.passwordLogin()
+    const second = page.passwordLogin()
+
+    expect(mocks.passwordLoginAndRoute).toHaveBeenCalledOnce()
+    expect(page.data.pending).toBe(true)
+    await second
+    pending.resolve({ role: "member" })
+    await first
+    expect(page.data.password).toBe("")
+    expect(page.data.pending).toBe(false)
+  })
+
   it("starts WeChat login only after the signed-out user requests it", async () => {
     const page = mount(definitions[2])
     mocks.loginAndRoute.mockResolvedValueOnce({ state: "authenticated" })
@@ -131,6 +169,17 @@ describe("Mini Program page interactions", () => {
 
     expect(mocks.loginAndRoute).toHaveBeenCalledOnce()
     expect(page.data.mode).toBe("loading")
+  })
+
+  it("returns to the trial login choice when WeChat login fails", async () => {
+    const page = mount(definitions[2])
+    page.data.accountLoginEnabled = true
+    mocks.loginAndRoute.mockRejectedValueOnce(new Error("wechat unavailable"))
+
+    await page.start()
+
+    expect(page.data.mode).toBe("login_choice")
+    expect(page.data.error).toContain("微信登录失败")
   })
 
   it("delegates account logout to the session service", () => {

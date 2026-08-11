@@ -57,6 +57,7 @@
 - [x] 7.5 Implement first-use account binding with ticket expiry, duplicate-submit prevention, uniform credential errors, and no password persistence
 - [x] 7.6 Implement server-derived member/coach navigation, account/session page, logout, forbidden-role handling, and native loading/empty/error/retry components
 - [x] 7.7 Add client tests for API headers, error mapping, token recovery, binding transitions, ticket expiry, idempotency retries, and role routing
+- [x] 7.8 Add develop/trial-only member and coach password login for test account switching, preserving WeChat-only release behavior and authentication-mode-specific token recovery
 
 ## 8. Member Mini Program
 

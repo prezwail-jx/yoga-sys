@@ -27,3 +27,9 @@ export interface WechatBindResult {
   tokenType: string
   role: BusinessRole
 }
+
+export interface PasswordLoginResult {
+  access_token: string
+  token_type: string
+  role: string
+}

@@ -14,7 +14,7 @@ export const apiClient = new ApiClient(
   runtime,
   apiBaseUrl(runtime),
   () => storageService.token(),
-  () => storageService.clearSession(),
+  () => storageService.clearUnauthorizedSession(),
 )
 export const idempotencyService = new IdempotencyService(storageService)
 export const memberService = new MemberService(apiClient, idempotencyService, storageService)

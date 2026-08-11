@@ -1,10 +1,23 @@
 <view class="page-shell startup">
   <text class="eyebrow">Yoga Studio</text>
   <view class="startup__orbit"></view>
+  <view wx:if="{{mode === 'login_choice'}}" class="startup__login-panel">
+    <view class="title">进入瑜伽空间</view>
+    <view class="muted">开发版和体验版可使用测试账号直接登录，不会创建微信绑定。</view>
+    <text class="startup__label">用户名</text>
+    <input class="startup__input" value="{{username}}" maxlength="64" cursor-spacing="24" bindinput="updateUsername" placeholder="请输入会员或教练用户名" />
+    <text class="startup__label">密码</text>
+    <input class="startup__input" value="{{password}}" password maxlength="128" cursor-spacing="24" bindinput="updatePassword" placeholder="请输入密码" />
+    <text wx:if="{{error}}" class="startup__error">{{error}}</text>
+    <button class="primary-button" loading="{{pending}}" disabled="{{pending || !username || !password}}" bindtap="passwordLogin">账号密码登录</button>
+    <view class="startup__divider"><text>或</text></view>
+    <button class="startup__wechat-button" disabled="{{pending}}" bindtap="start">微信快捷登录</button>
+    <text class="startup__hint">微信登录会保留现有的一对一账号绑定规则。</text>
+  </view>
   <view wx:if="{{mode === 'signed_out'}}" class="startup__signed-out">
     <view class="title">已退出登录</view>
     <view class="muted">微信账号绑定仍然保留。需要使用时，请重新登录。</view>
     <button class="primary-button" bindtap="start">微信登录</button>
   </view>
-  <async-state wx:else mode="{{mode}}" message="{{message}}" bindretry="start" />
+  <async-state wx:if="{{mode === 'loading' || mode === 'error'}}" mode="{{mode}}" message="{{message}}" bindretry="start" />
 </view>

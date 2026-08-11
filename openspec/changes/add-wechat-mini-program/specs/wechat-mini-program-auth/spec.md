@@ -43,6 +43,21 @@ The system MUST issue the existing FastAPI Bearer JWT format when a valid WeChat
 - **WHEN** a valid WeChat code resolves to a bound, enabled coach account
 - **THEN** the system issues a coach JWT with the current `coachProfileId` without requesting the account password again
 
+### Requirement: Non-release password testing access
+Development and trial Mini Program builds MUST offer password login for eligible member and coach test accounts without creating or changing a WeChat identity binding. The client MUST NOT persist the password and MUST reject administrator roles. Release builds MUST NOT expose or permit the password login path.
+
+#### Scenario: Trial user selects password login
+- **WHEN** an eligible member or coach submits valid credentials in a development or trial build
+- **THEN** the client stores the issued business token, records password authentication mode, routes by the server-confirmed role, and creates no WeChat binding
+
+#### Scenario: Administrator attempts password login in the Mini Program
+- **WHEN** valid administrator credentials are submitted through the non-release password login form
+- **THEN** the client rejects the unsupported role, stores no token, and does not enter a Mini Program workspace
+
+#### Scenario: Release build is opened
+- **WHEN** the Mini Program environment version is `release`
+- **THEN** the client offers only WeChat login and locally rejects any password-login invocation
+
 ### Requirement: Account status remains authoritative
 The system MUST apply the existing member and coach login-status rules on initial binding and every subsequent WeChat login. Disabling, deleting, or otherwise making an account ineligible MUST prevent new JWT issuance even when its WeChat binding remains recorded.
 
@@ -74,13 +89,17 @@ The initial release MUST implement recovery as unbind followed by the standard f
 ### Requirement: Mini Program token lifecycle
 The Mini Program MUST send authenticated API requests with the issued Bearer token, clear unusable tokens after authentication failure, and restart WeChat login before retrying protected operations. It MUST NOT place the token in page URLs, logs, analytics events, or user-visible error messages.
 
-#### Scenario: Stored token expires
-- **WHEN** a protected API request returns an authentication failure for the stored Mini Program token
+#### Scenario: Stored WeChat token expires
+- **WHEN** a protected API request returns an authentication failure for a WeChat-authenticated Mini Program token
 - **THEN** the client clears the token, obtains a new `wx.login` code, and restores the session only if the bound account remains eligible
+
+#### Scenario: Stored password token expires
+- **WHEN** a protected API request returns an authentication failure for a password-authenticated development or trial session
+- **THEN** the client clears the token and returns to the login chooser without automatically starting WeChat login
 
 #### Scenario: User explicitly logs out
 - **WHEN** an authenticated member or coach selects logout
-- **THEN** the client clears its local session and remains signed out until the user explicitly starts WeChat login again, without removing the server-side WeChat binding
+- **THEN** the client clears its local session and remains signed out until the user explicitly selects an available login method again, without removing the server-side WeChat binding
 
 ### Requirement: WeChat authentication auditing and throttling
 The system MUST audit successful bindings, binding conflicts, and rejected Mini Program authentication attempts without recording credentials, tokens, `session_key`, or full WeChat identifiers. Credential binding attempts MUST be rate-limited by identity and network source.
