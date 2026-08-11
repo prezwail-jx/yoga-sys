@@ -1,0 +1,13 @@
+node_modules
+.nuxt
+.output
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+dist
+test-results
+playwright-report
+coverage
+*.log
