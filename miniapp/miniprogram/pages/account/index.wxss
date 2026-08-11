@@ -13,3 +13,12 @@
   font-family: Georgia, serif;
   font-size: 42rpx;
 }
+
+.account-card__hint {
+  display: block;
+  margin-top: 18rpx;
+  color: #64736e;
+  font-size: 22rpx;
+  line-height: 1.6;
+  text-align: center;
+}

@@ -78,6 +78,10 @@ The Mini Program MUST send authenticated API requests with the issued Bearer tok
 - **WHEN** a protected API request returns an authentication failure for the stored Mini Program token
 - **THEN** the client clears the token, obtains a new `wx.login` code, and restores the session only if the bound account remains eligible
 
+#### Scenario: User explicitly logs out
+- **WHEN** an authenticated member or coach selects logout
+- **THEN** the client clears its local session and remains signed out until the user explicitly starts WeChat login again, without removing the server-side WeChat binding
+
 ### Requirement: WeChat authentication auditing and throttling
 The system MUST audit successful bindings, binding conflicts, and rejected Mini Program authentication attempts without recording credentials, tokens, `session_key`, or full WeChat identifiers. Credential binding attempts MUST be rate-limited by identity and network source.
 

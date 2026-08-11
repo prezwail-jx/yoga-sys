@@ -2,6 +2,6 @@ import { sessionService } from "../../services/index"
 
 Page({
   restart() {
-    sessionService.logout()
+    sessionService.restartLogin()
   },
 })

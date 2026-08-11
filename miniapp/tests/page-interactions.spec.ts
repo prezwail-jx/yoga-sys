@@ -1,7 +1,9 @@
-import { beforeAll, describe, expect, it, vi } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
   bindAndRoute: vi.fn(),
+  isSignedOut: vi.fn(),
+  loginAndRoute: vi.fn(),
   logout: vi.fn(),
   bookClass: vi.fn(),
   schedule: vi.fn(),
@@ -33,7 +35,12 @@ vi.mock("../miniprogram/services", () => {
     BindingTicketExpiredError: class BindingTicketExpiredError extends Error {},
     memberService: { bookClass: mocks.bookClass, schedule: mocks.schedule },
     navigationService: { routeForbidden: vi.fn() },
-    sessionService: { bindAndRoute: mocks.bindAndRoute, logout: mocks.logout },
+    sessionService: {
+      bindAndRoute: mocks.bindAndRoute,
+      isSignedOut: mocks.isSignedOut,
+      loginAndRoute: mocks.loginAndRoute,
+      logout: mocks.logout,
+    },
     storageService: { user: () => ({ role: "member" }) },
   }
 })
@@ -58,6 +65,13 @@ beforeAll(async () => {
   vi.stubGlobal("Page", (definition: any) => definitions.push(definition))
   await import("../miniprogram/pages/bind/index")
   await import("../miniprogram/pages/member/schedule/index")
+  await import("../miniprogram/pages/startup/index")
+  await import("../miniprogram/pages/account/index")
+})
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  mocks.isSignedOut.mockReturnValue(false)
 })
 
 describe("Mini Program page interactions", () => {
@@ -97,5 +111,33 @@ describe("Mini Program page interactions", () => {
     expect(mocks.schedule).toHaveBeenCalled()
     expect(page.data.pendingId).toBe("")
     expect(page.data.mode).toBe("empty")
+  })
+
+  it("does not restart WeChat login while explicitly signed out", () => {
+    const page = mount(definitions[2])
+    mocks.isSignedOut.mockReturnValueOnce(true)
+
+    page.onLoad()
+
+    expect(page.data.mode).toBe("signed_out")
+    expect(mocks.loginAndRoute).not.toHaveBeenCalled()
+  })
+
+  it("starts WeChat login only after the signed-out user requests it", async () => {
+    const page = mount(definitions[2])
+    mocks.loginAndRoute.mockResolvedValueOnce({ state: "authenticated" })
+
+    await page.start()
+
+    expect(mocks.loginAndRoute).toHaveBeenCalledOnce()
+    expect(page.data.mode).toBe("loading")
+  })
+
+  it("delegates account logout to the session service", () => {
+    const page = mount(definitions[3])
+
+    page.logout()
+
+    expect(mocks.logout).toHaveBeenCalledOnce()
   })
 })

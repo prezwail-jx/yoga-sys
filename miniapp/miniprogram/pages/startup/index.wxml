@@ -1,5 +1,10 @@
 <view class="page-shell startup">
   <text class="eyebrow">Yoga Studio</text>
   <view class="startup__orbit"></view>
-  <async-state mode="{{mode}}" message="{{message}}" bindretry="start" />
+  <view wx:if="{{mode === 'signed_out'}}" class="startup__signed-out">
+    <view class="title">已退出登录</view>
+    <view class="muted">微信账号绑定仍然保留。需要使用时，请重新登录。</view>
+    <button class="primary-button" bindtap="start">微信登录</button>
+  </view>
+  <async-state wx:else mode="{{mode}}" message="{{message}}" bindretry="start" />
 </view>

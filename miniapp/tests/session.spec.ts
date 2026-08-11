@@ -55,6 +55,40 @@ describe("SessionService", () => {
     expect(runtime.relaunches.at(-1)).toBe("/pages/bind/index")
   })
 
+  it("remains signed out after explicit logout until login is requested", async () => {
+    const runtime = new FakeRuntime()
+    const { storage, session } = services(runtime)
+    storage.setToken("stored-token")
+    storage.setUser({ username: "member.one", role: "member", memberId: "member-1" })
+    storage.setBinding({ ticket: "ticket-1", expiresAt: Date.now() + 60_000 })
+
+    session.logout()
+
+    expect(storage.token()).toBeNull()
+    expect(storage.user()).toBeNull()
+    expect(storage.binding()).toBeNull()
+    expect(storage.isSignedOut()).toBe(true)
+    expect(runtime.loginCalls).toBe(0)
+    expect(runtime.relaunches.at(-1)).toBe("/pages/startup/index")
+  })
+
+  it("clears the signed-out marker when the user starts WeChat login", async () => {
+    const runtime = new FakeRuntime()
+    const { storage, session } = services(runtime)
+    storage.markSignedOut()
+    runtime.requestHandler = (options) => options.success({
+      data: { state: "binding_required", bindingTicket: "ticket-1", expiresIn: 600 },
+      statusCode: 200,
+      header: {},
+    })
+
+    await session.loginAndRoute()
+
+    expect(storage.isSignedOut()).toBe(false)
+    expect(runtime.loginCalls).toBe(1)
+    expect(runtime.relaunches.at(-1)).toBe("/pages/bind/index")
+  })
+
   it("binds once, does not persist the password and routes from server role", async () => {
     const runtime = new FakeRuntime()
     const { storage, session } = services(runtime)

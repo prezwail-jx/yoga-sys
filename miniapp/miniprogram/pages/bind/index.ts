@@ -31,6 +31,6 @@ Page({
     }
   },
   restart() {
-    sessionService.logout()
+    sessionService.restartLogin()
   },
 })

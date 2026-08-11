@@ -4,6 +4,7 @@ import type { MiniProgramRuntime } from "../platform/runtime"
 const TOKEN_KEY = "yoga.auth.token"
 const USER_KEY = "yoga.auth.user"
 const BINDING_KEY = "yoga.auth.binding"
+const SIGNED_OUT_KEY = "yoga.auth.signed_out"
 const IDEMPOTENCY_PREFIX = "yoga.idempotency."
 
 export interface BindingChallenge {
@@ -49,6 +50,18 @@ export class StorageService {
 
   clearBinding(): void {
     this.runtime.removeStorageSync(BINDING_KEY)
+  }
+
+  isSignedOut(): boolean {
+    return this.runtime.getStorageSync(SIGNED_OUT_KEY) === true
+  }
+
+  markSignedOut(): void {
+    this.runtime.setStorageSync(SIGNED_OUT_KEY, true)
+  }
+
+  clearSignedOut(): void {
+    this.runtime.removeStorageSync(SIGNED_OUT_KEY)
   }
 
   pendingIdempotency(operationId: string): PendingIdempotency | null {

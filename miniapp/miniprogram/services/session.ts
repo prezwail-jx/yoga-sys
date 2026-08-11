@@ -53,6 +53,15 @@ export class SessionService {
     return result
   }
 
+  isSignedOut(): boolean {
+    return this.storage.isSignedOut()
+  }
+
+  loginAndRoute(): Promise<BootstrapResult> {
+    this.storage.clearSignedOut()
+    return this.bootstrapAndRoute()
+  }
+
   async bindAndRoute(username: string, password: string): Promise<CurrentUser> {
     if (this.bindingPending) throw new Error("Binding is already in progress")
     const challenge = this.storage.binding()
@@ -80,6 +89,14 @@ export class SessionService {
   logout(): void {
     this.storage.clearSession()
     this.storage.clearBinding()
+    this.storage.markSignedOut()
+    this.navigation.routeStartup()
+  }
+
+  restartLogin(): void {
+    this.storage.clearSession()
+    this.storage.clearBinding()
+    this.storage.clearSignedOut()
     this.navigation.routeStartup()
   }
 
