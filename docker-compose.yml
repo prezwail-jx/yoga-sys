@@ -1,6 +1,6 @@
 services:
   backend:
-    image: yoga-sys-backend:latest
+    image: yoga-sys-backend:20260811
     restart: unless-stopped
     network_mode: host
     environment:

@@ -13,6 +13,8 @@ venv/
 .coverage.*
 htmlcov/
 dist/
+/yoga-sys-release-*.tar.gz
+/yoga-sys-release-*.tar.gz.sha256
 *.egg-info/
 
 # Node/Nuxt
