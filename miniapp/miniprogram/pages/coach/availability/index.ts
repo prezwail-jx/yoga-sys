@@ -1,4 +1,4 @@
-import { ActionGuard, ApiError, coachService, navigationService, storageService } from "../../../services"
+import { ActionGuard, ApiError, coachService, navigationService, storageService } from "../../../services/index"
 import type { DayGroup, PrivateSlotView } from "../../../types/member"
 import { dateKey, mondayOf } from "../../../utils/member-presenter"
 import { confirmAction } from "../../../utils/modal"

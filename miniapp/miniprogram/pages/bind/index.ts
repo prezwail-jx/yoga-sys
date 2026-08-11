@@ -1,4 +1,4 @@
-import { ApiError, BindingTicketExpiredError, sessionService } from "../../services"
+import { ApiError, BindingTicketExpiredError, sessionService } from "../../services/index"
 
 Page({
   data: {

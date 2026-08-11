@@ -1,4 +1,4 @@
-import { ActionGuard, ApiError, coachService, navigationService, storageService } from "../../../services"
+import { ActionGuard, ApiError, coachService, navigationService, storageService } from "../../../services/index"
 import type { RosterBooking } from "../../../types/coach"
 import type { ClassSession } from "../../../types/member"
 import { confirmAction } from "../../../utils/modal"

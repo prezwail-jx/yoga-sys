@@ -1,4 +1,4 @@
-import { sessionService } from "../../services"
+import { sessionService } from "../../services/index"
 
 Page({
   data: {

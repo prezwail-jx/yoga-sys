@@ -1,4 +1,4 @@
-import { ActionGuard, ApiError, coachService, navigationService, storageService } from "../../../services"
+import { ActionGuard, ApiError, coachService, navigationService, storageService } from "../../../services/index"
 import type { PrivateBooking } from "../../../types/member"
 import { validateLessonInput } from "../../../utils/coach-presenter"
 

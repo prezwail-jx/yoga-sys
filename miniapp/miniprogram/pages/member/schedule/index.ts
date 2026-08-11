@@ -1,4 +1,4 @@
-import { ActionGuard, ApiError, memberService, navigationService, storageService } from "../../../services"
+import { ActionGuard, ApiError, memberService, navigationService, storageService } from "../../../services/index"
 import type { DayGroup, ClassScheduleItem } from "../../../types/member"
 import { dateKey, mondayOf, shiftWeek } from "../../../utils/member-presenter"
 import { confirmAction } from "../../../utils/modal"

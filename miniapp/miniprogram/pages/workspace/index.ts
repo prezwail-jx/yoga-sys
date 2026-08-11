@@ -1,4 +1,4 @@
-import { navigationForRole, navigationService, storageService } from "../../services"
+import { navigationForRole, navigationService, storageService } from "../../services/index"
 
 Page({
   data: {

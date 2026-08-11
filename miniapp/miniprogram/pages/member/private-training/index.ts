@@ -1,4 +1,4 @@
-import { ActionGuard, ApiError, memberService, navigationService, storageService } from "../../../services"
+import { ActionGuard, ApiError, memberService, navigationService, storageService } from "../../../services/index"
 import type { DayGroup, PrivateBookingView, PrivateSlotView } from "../../../types/member"
 import { promptAction } from "../../../utils/modal"
 

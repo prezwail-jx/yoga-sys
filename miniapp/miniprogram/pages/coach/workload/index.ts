@@ -1,4 +1,4 @@
-import { ActionGuard, ApiError, coachService, navigationService, storageService } from "../../../services"
+import { ActionGuard, ApiError, coachService, navigationService, storageService } from "../../../services/index"
 import type { PrivateBookingStatus, PrivateBookingView } from "../../../types/member"
 import { confirmAction, promptAction } from "../../../utils/modal"
 

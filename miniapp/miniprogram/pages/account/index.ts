@@ -1,4 +1,4 @@
-import { navigationService, sessionService, storageService } from "../../services"
+import { navigationService, sessionService, storageService } from "../../services/index"
 
 Page({
   data: {

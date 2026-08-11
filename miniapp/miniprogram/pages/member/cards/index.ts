@@ -1,4 +1,4 @@
-import { ApiError, memberService, navigationService, storageService } from "../../../services"
+import { ApiError, memberService, navigationService, storageService } from "../../../services/index"
 import type { MemberCardView } from "../../../types/member"
 import { memberCardView } from "../../../utils/member-presenter"
 

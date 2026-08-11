@@ -1,4 +1,4 @@
-import { ApiError, coachService, navigationService, storageService } from "../../../services"
+import { ApiError, coachService, navigationService, storageService } from "../../../services/index"
 import type { CoachScheduleGroups } from "../../../types/coach"
 import { dateKey, mondayOf, shiftWeek } from "../../../utils/member-presenter"
 
