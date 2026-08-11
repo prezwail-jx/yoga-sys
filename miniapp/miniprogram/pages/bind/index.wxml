@@ -4,9 +4,9 @@
   <view class="muted">仅首次使用需要验证已有会员或教练账号。密码不会保存在小程序中。</view>
   <view class="panel bind-form">
     <text class="bind-form__label">用户名</text>
-    <input class="bind-form__input" value="{{username}}" maxlength="64" bindinput="updateUsername" placeholder="请输入用户名" />
+    <input class="bind-form__input" maxlength="64" bindinput="updateUsername" placeholder="请输入用户名" />
     <text class="bind-form__label">密码</text>
-    <input class="bind-form__input" value="{{password}}" password maxlength="128" bindinput="updatePassword" placeholder="请输入密码" />
+    <input class="bind-form__input" password maxlength="128" key="{{passwordKey}}" bindinput="updatePassword" placeholder="请输入密码" />
     <text wx:if="{{error}}" class="bind-form__error">{{error}}</text>
     <button class="primary-button" loading="{{pending}}" disabled="{{pending || !username || !password}}" bindtap="submit">绑定并进入</button>
     <button class="bind-form__restart" disabled="{{pending}}" bindtap="restart">重新获取微信登录凭证</button>

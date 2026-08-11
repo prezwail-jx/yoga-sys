@@ -12,6 +12,9 @@
   border: 1rpx solid rgba(23, 63, 53, 0.22);
   border-radius: 18rpx;
   background: #fff;
+  color: #18312b;
+  caret-color: #18312b;
+  -webkit-text-fill-color: #18312b;
   font-size: 30rpx;
 }
 

@@ -4,6 +4,7 @@ Page({
   data: {
     username: "",
     password: "",
+    passwordKey: 0,
     pending: false,
     error: "",
   },
@@ -18,14 +19,14 @@ Page({
     this.setData({ pending: true, error: "" })
     try {
       await sessionService.bindAndRoute(this.data.username, this.data.password)
-      this.setData({ password: "" })
+      this.setData({ password: "", passwordKey: this.data.passwordKey + 1 })
     } catch (error) {
       const message = error instanceof BindingTicketExpiredError
         ? "绑定凭证已过期，请重新登录"
         : error instanceof ApiError
           ? error.message
           : "绑定失败，请稍后重试"
-      this.setData({ password: "", error: message })
+      this.setData({ password: "", passwordKey: this.data.passwordKey + 1, error: message })
     } finally {
       this.setData({ pending: false })
     }
