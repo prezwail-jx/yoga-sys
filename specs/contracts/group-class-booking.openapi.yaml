@@ -1,0 +1,705 @@
+openapi: 3.0.3
+info:
+  title: Yoga Sys Group Class Booking API
+  version: 0.1.0
+  description: Contract for class catalog, weekly scheduling, booking write-off, and member account binding.
+servers:
+  - url: https://api.yoga-sys.local
+security:
+  - bearerAuth: []
+tags:
+  - name: Courses
+  - name: Rooms
+  - name: Coaches
+  - name: ClassSessions
+  - name: ClassBookings
+  - name: MemberAccounts
+paths:
+  /courses:
+    get:
+      tags: [Courses]
+      summary: List courses
+      responses:
+        '200':
+          description: Course list
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CourseListResponse' }
+    post:
+      tags: [Courses]
+      summary: Create course
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateCourseRequest' }
+      responses:
+        '201':
+          description: Course created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Course' }
+  /courses/{courseId}:
+    parameters:
+      - $ref: '#/components/parameters/CourseId'
+    get:
+      tags: [Courses]
+      summary: Get course
+      responses:
+        '200':
+          description: Course returned
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Course' }
+    patch:
+      tags: [Courses]
+      summary: Update or disable course
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateCourseRequest' }
+      responses:
+        '200':
+          description: Course updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Course' }
+  /rooms:
+    get:
+      tags: [Rooms]
+      summary: List rooms
+      responses:
+        '200':
+          description: Room list
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoomListResponse' }
+    post:
+      tags: [Rooms]
+      summary: Create room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateRoomRequest' }
+      responses:
+        '201':
+          description: Room created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Room' }
+  /rooms/{roomId}:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    get:
+      tags: [Rooms]
+      summary: Get room
+      responses:
+        '200':
+          description: Room returned
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Room' }
+    patch:
+      tags: [Rooms]
+      summary: Update or disable room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateRoomRequest' }
+      responses:
+        '200':
+          description: Room updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Room' }
+  /coaches:
+    get:
+      tags: [Coaches]
+      summary: List coach profiles
+      responses:
+        '200':
+          description: Coach list
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CoachListResponse' }
+    post:
+      tags: [Coaches]
+      summary: Create coach profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateCoachRequest' }
+      responses:
+        '201':
+          description: Coach created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Coach' }
+  /coaches/{coachId}:
+    parameters:
+      - $ref: '#/components/parameters/CoachId'
+    get:
+      tags: [Coaches]
+      summary: Get coach profile
+      responses:
+        '200':
+          description: Coach returned
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Coach' }
+    patch:
+      tags: [Coaches]
+      summary: Update or disable coach profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateCoachRequest' }
+      responses:
+        '200':
+          description: Coach updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Coach' }
+  /class-sessions:
+    get:
+      tags: [ClassSessions]
+      summary: Get weekly schedule
+      parameters:
+        - name: weekStart
+          in: query
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Weekly schedule
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClassSessionListResponse' }
+    post:
+      tags: [ClassSessions]
+      summary: Create draft class session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateClassSessionRequest' }
+      responses:
+        '201':
+          description: Session created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClassSession' }
+  /class-sessions/{sessionId}:
+    parameters:
+      - $ref: '#/components/parameters/SessionId'
+    get:
+      tags: [ClassSessions]
+      summary: Get class session
+      responses:
+        '200':
+          description: Session returned
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClassSession' }
+    patch:
+      tags: [ClassSessions]
+      summary: Update class session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateClassSessionRequest' }
+      responses:
+        '200':
+          description: Session updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClassSession' }
+  /class-sessions/copy-week:
+    post:
+      tags: [ClassSessions]
+      summary: Copy source week sessions as target week drafts
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CopyWeekRequest' }
+      responses:
+        '200':
+          description: Copy result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CopyWeekResponse' }
+  /class-sessions/{sessionId}/publish:
+    post:
+      tags: [ClassSessions]
+      summary: Publish class session
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Session published
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClassSession' }
+  /class-sessions/{sessionId}/pause:
+    post:
+      tags: [ClassSessions]
+      summary: Pause class session
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Session paused
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClassSession' }
+  /class-sessions/{sessionId}/resume:
+    post:
+      tags: [ClassSessions]
+      summary: Resume class session
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Session resumed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClassSession' }
+  /class-sessions/{sessionId}/cancel:
+    post:
+      tags: [ClassSessions]
+      summary: Cancel class session and active bookings
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Session cancelled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClassSession' }
+  /class-sessions/{sessionId}/complete:
+    post:
+      tags: [ClassSessions]
+      summary: Complete class session and mark remaining bookings absent
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Session completed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClassSession' }
+  /class-sessions/{sessionId}/bookings:
+    get:
+      tags: [ClassBookings]
+      summary: List session bookings
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Booking list
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClassBookingListResponse' }
+    post:
+      tags: [ClassBookings]
+      summary: Create self-service or admin proxy booking
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateClassBookingRequest' }
+      responses:
+        '201':
+          description: Booking created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClassBooking' }
+        '409': { description: Booking eligibility or capacity conflict }
+  /class-bookings/{bookingId}/cancel:
+    post:
+      tags: [ClassBookings]
+      summary: Cancel active booking
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CancelClassBookingRequest' }
+      responses:
+        '200':
+          description: Booking cancelled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClassBooking' }
+  /class-bookings/{bookingId}/check-in:
+    post:
+      tags: [ClassBookings]
+      summary: Check in active booking
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Booking checked in
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClassBooking' }
+  /members/me/bookings:
+    get:
+      tags: [ClassBookings]
+      summary: List current member bookings
+      responses:
+        '200':
+          description: Current member booking list
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClassBookingListResponse' }
+  /members/{memberId}/account:
+    post:
+      tags: [MemberAccounts]
+      summary: Create member password account
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateAccountBindingRequest' }
+      responses:
+        '201':
+          description: Member account created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccountBinding' }
+        '409': { description: Username or member binding already exists }
+  /coaches/{coachId}/account:
+    post:
+      tags: [MemberAccounts]
+      summary: Create coach password account
+      parameters:
+        - $ref: '#/components/parameters/CoachId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateAccountBindingRequest' }
+      responses:
+        '201':
+          description: Coach account created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccountBinding' }
+        '409': { description: Username or coach binding already exists }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    CourseId:
+      name: courseId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    RoomId:
+      name: roomId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    CoachId:
+      name: coachId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    BookingId:
+      name: bookingId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    MemberId:
+      name: memberId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 8, maxLength: 128 }
+  schemas:
+    CourseDifficulty:
+      type: string
+      enum: [all_levels, beginner, intermediate, advanced]
+    ClassSessionStatus:
+      type: string
+      enum: [draft, published, paused, cancelled, completed]
+    ClassBookingStatus:
+      type: string
+      enum: [reserved, checked_in, cancelled, absent]
+    CreateCourseRequest:
+      type: object
+      required: [name, durationMinutes]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        durationMinutes: { type: integer, minimum: 1, maximum: 480 }
+        difficulty: { $ref: '#/components/schemas/CourseDifficulty' }
+        description: { type: string, maxLength: 4000, nullable: true }
+        coverUrl: { type: string, format: uri, nullable: true }
+        enabled: { type: boolean, default: true }
+    UpdateCourseRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        durationMinutes: { type: integer, minimum: 1, maximum: 480 }
+        difficulty: { $ref: '#/components/schemas/CourseDifficulty' }
+        description: { type: string, maxLength: 4000, nullable: true }
+        coverUrl: { type: string, format: uri, nullable: true }
+        enabled: { type: boolean }
+    Course:
+      type: object
+      required: [id, name, durationMinutes, difficulty, enabled, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        durationMinutes: { type: integer }
+        difficulty: { $ref: '#/components/schemas/CourseDifficulty' }
+        description: { type: string, nullable: true }
+        coverUrl: { type: string, format: uri, nullable: true }
+        enabled: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    CourseListResponse:
+      type: object
+      required: [items, total, skip, limit]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Course' } }
+        total: { type: integer }
+        skip: { type: integer }
+        limit: { type: integer }
+    CreateRoomRequest:
+      type: object
+      required: [name, capacity]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        capacity: { type: integer, minimum: 1, maximum: 500 }
+        enabled: { type: boolean, default: true }
+    UpdateRoomRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        capacity: { type: integer, minimum: 1, maximum: 500 }
+        enabled: { type: boolean }
+    Room:
+      type: object
+      required: [id, name, capacity, enabled, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        capacity: { type: integer }
+        enabled: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    RoomListResponse:
+      type: object
+      required: [items, total, skip, limit]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Room' } }
+        total: { type: integer }
+        skip: { type: integer }
+        limit: { type: integer }
+    CreateCoachRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 50 }
+        avatarUrl: { type: string, format: uri, nullable: true }
+        bio: { type: string, maxLength: 4000, nullable: true }
+        specialtyCourseIds:
+          type: array
+          nullable: true
+          items: { type: string, format: uuid }
+        enabled: { type: boolean, default: true }
+    UpdateCoachRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 50 }
+        avatarUrl: { type: string, format: uri, nullable: true }
+        bio: { type: string, maxLength: 4000, nullable: true }
+        specialtyCourseIds:
+          type: array
+          nullable: true
+          items: { type: string, format: uuid }
+        enabled: { type: boolean }
+    Coach:
+      type: object
+      required: [id, name, enabled, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        avatarUrl: { type: string, format: uri, nullable: true }
+        bio: { type: string, nullable: true }
+        specialtyCourseIds:
+          type: array
+          nullable: true
+          items: { type: string, format: uuid }
+        enabled: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    CoachListResponse:
+      type: object
+      required: [items, total, skip, limit]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Coach' } }
+        total: { type: integer }
+        skip: { type: integer }
+        limit: { type: integer }
+    CreateClassSessionRequest:
+      type: object
+      required: [courseId, coachProfileId, roomId, startAt, endAt, capacity]
+      properties:
+        courseId: { type: string, format: uuid }
+        coachProfileId: { type: string, format: uuid }
+        roomId: { type: string, format: uuid }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        capacity: { type: integer, minimum: 1, maximum: 500 }
+        bookingOpenHoursBefore: { type: integer, minimum: 0, default: 168 }
+        bookingCloseMinutesBefore: { type: integer, minimum: 0, default: 0 }
+        cancelCutoffMinutesBefore: { type: integer, minimum: 0, default: 120 }
+    UpdateClassSessionRequest:
+      type: object
+      properties:
+        courseId: { type: string, format: uuid }
+        coachProfileId: { type: string, format: uuid }
+        roomId: { type: string, format: uuid }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        capacity: { type: integer, minimum: 1, maximum: 500 }
+        bookingOpenHoursBefore: { type: integer, minimum: 0 }
+        bookingCloseMinutesBefore: { type: integer, minimum: 0 }
+        cancelCutoffMinutesBefore: { type: integer, minimum: 0 }
+    ClassSession:
+      allOf:
+        - $ref: '#/components/schemas/CreateClassSessionRequest'
+        - type: object
+          required: [id, courseName, coachName, roomName, status, createdBy, bookedCount, remainingCapacity, isFull, createdAt, updatedAt]
+          properties:
+            id: { type: string, format: uuid }
+            courseName: { type: string }
+            coachName: { type: string }
+            roomName: { type: string }
+            status: { $ref: '#/components/schemas/ClassSessionStatus' }
+            sourceSessionId: { type: string, format: uuid, nullable: true }
+            createdBy: { type: string }
+            bookedCount: { type: integer }
+            remainingCapacity: { type: integer }
+            isFull: { type: boolean }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+    ClassSessionListResponse:
+      type: object
+      required: [items, weekStart, weekEnd]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/ClassSession' } }
+        weekStart: { type: string, format: date }
+        weekEnd: { type: string, format: date }
+    CopyWeekRequest:
+      type: object
+      required: [sourceWeekStart, targetWeekStart]
+      properties:
+        sourceWeekStart: { type: string, format: date }
+        targetWeekStart: { type: string, format: date }
+    CopyConflict:
+      type: object
+      required: [sourceSessionId, targetStartAt, reason]
+      properties:
+        sourceSessionId: { type: string, format: uuid }
+        targetStartAt: { type: string, format: date-time }
+        reason: { type: string }
+    CopyWeekResponse:
+      type: object
+      required: [created, conflicts]
+      properties:
+        created: { type: array, items: { $ref: '#/components/schemas/ClassSession' } }
+        conflicts: { type: array, items: { $ref: '#/components/schemas/CopyConflict' } }
+    CreateClassBookingRequest:
+      type: object
+      properties:
+        memberId: { type: string, format: uuid, nullable: true }
+    CancelClassBookingRequest:
+      type: object
+      properties:
+        reason: { type: string, maxLength: 255, nullable: true }
+    ClassBooking:
+      type: object
+      required: [id, classSessionId, memberId, memberName, courseName, coachName, roomName, startAt, endAt, sessionStatus, status, bookedAt, traceId, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        classSessionId: { type: string, format: uuid }
+        memberId: { type: string, format: uuid }
+        memberName: { type: string }
+        courseName: { type: string }
+        coachName: { type: string }
+        roomName: { type: string }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        sessionStatus: { $ref: '#/components/schemas/ClassSessionStatus' }
+        status: { $ref: '#/components/schemas/ClassBookingStatus' }
+        bookedById: { type: string, nullable: true }
+        bookedByRole: { type: string, nullable: true }
+        bookedAt: { type: string, format: date-time }
+        terminalById: { type: string, nullable: true }
+        terminalByRole: { type: string, nullable: true }
+        terminalAt: { type: string, format: date-time, nullable: true }
+        cancellationReason: { type: string, nullable: true }
+        traceId: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    ClassBookingListResponse:
+      type: object
+      required: [items, total, skip, limit]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/ClassBooking' } }
+        total: { type: integer }
+        skip: { type: integer }
+        limit: { type: integer }
+    CreateAccountBindingRequest:
+      type: object
+      required: [username, initialPassword]
+      properties:
+        username: { type: string, minLength: 3, maxLength: 64, pattern: '^[a-z0-9_.-]+$' }
+        initialPassword: { type: string, minLength: 8, maxLength: 128, format: password, writeOnly: true }
+    AccountBinding:
+      type: object
+      required: [id, username, role, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        username: { type: string }
+        role: { type: string, enum: [member, coach] }
+        memberId: { type: string, format: uuid, nullable: true }
+        coachProfileId: { type: string, format: uuid, nullable: true }
+        createdAt: { type: string, format: date-time }

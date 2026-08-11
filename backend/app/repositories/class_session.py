@@ -77,13 +77,22 @@ class ClassSessionRepository:
         row = self.session.execute(self._projection().where(ClassSession.id == session_id)).first()
         return self.as_dict(row) if row else None
 
-    def list_week(self, start_at: datetime, end_at: datetime, *, include_drafts: bool) -> list[dict]:
+    def list_week(
+        self,
+        start_at: datetime,
+        end_at: datetime,
+        *,
+        include_drafts: bool,
+        coach_profile_id: UUID | None = None,
+    ) -> list[dict]:
         statement = self._projection().where(
             ClassSession.start_at >= start_at,
             ClassSession.start_at < end_at,
         )
         if not include_drafts:
             statement = statement.where(ClassSession.status != "draft")
+        if coach_profile_id is not None:
+            statement = statement.where(ClassSession.coach_profile_id == coach_profile_id)
         rows = self.session.execute(statement.order_by(ClassSession.start_at, ClassSession.id)).all()
         return [self.as_dict(row) for row in rows]
 

@@ -1,0 +1,7 @@
+<view class="state state--{{mode}}">
+  <view class="state__mark" wx:if="{{mode === 'loading'}}">···</view>
+  <view class="state__mark" wx:elif="{{mode === 'empty'}}">○</view>
+  <view class="state__mark" wx:else>!</view>
+  <text class="state__message">{{message}}</text>
+  <button wx:if="{{mode === 'error'}}" class="state__retry" bindtap="retry">{{retryLabel}}</button>
+</view>

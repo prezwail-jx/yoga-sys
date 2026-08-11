@@ -1,0 +1,15 @@
+.account-card__role,
+.account-card__name {
+  display: block;
+}
+
+.account-card__role {
+  color: #bb6b3d;
+  font-size: 24rpx;
+}
+
+.account-card__name {
+  margin: 12rpx 0 22rpx;
+  font-family: Georgia, serif;
+  font-size: 42rpx;
+}

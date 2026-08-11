@@ -13,6 +13,11 @@ from app.repositories.private_training import PrivateTrainingRepository
 from app.repositories.writeoff_repository import WriteOffRepository
 from app.repositories.member import MemberRepository
 from app.services.auth import AuthService
+from app.services.rate_limit import wechat_bind_rate_limiter
+from app.services.wechat_auth import WechatAuthService
+from app.services.wechat_binding_recovery import WechatBindingRecoveryService
+from app.core.wechat_config import get_wechat_config
+from app.integrations.wechat import FakeWechatProvider, RealWechatProvider
 from app.services.card_product import CardProductService
 from app.services.class_catalog import ClassCatalogService
 from app.services.class_scheduling import ClassSchedulingService
@@ -32,12 +37,30 @@ def get_auth_service(repo: AdminUserRepository = Depends(get_admin_user_repo)) -
     return AuthService(repo)
 
 
+def get_wechat_auth_service(session: Session = Depends(get_session)) -> WechatAuthService:
+    config = get_wechat_config()
+    provider = FakeWechatProvider(config.app_id) if config.provider == "fake" else RealWechatProvider(config)
+    return WechatAuthService(
+        session,
+        config,
+        provider,
+        AuthService(AdminUserRepository(session)),
+        wechat_bind_rate_limiter,
+    )
+
+
+def get_wechat_binding_recovery_service(
+    session: Session = Depends(get_session),
+) -> WechatBindingRecoveryService:
+    return WechatBindingRecoveryService(session, get_wechat_config())
+
+
 def get_member_repo(session: Session = Depends(get_session)) -> MemberRepository:
     return MemberRepository(session)
 
 
-def get_member_service(repo: MemberRepository = Depends(get_member_repo)) -> MemberService:
-    return MemberService(repo)
+def get_member_service(session: Session = Depends(get_session)) -> MemberService:
+    return MemberService(MemberRepository(session), AdminUserRepository(session))
 
 
 def get_card_product_repo(session: Session = Depends(get_session)) -> CardProductRepository:
@@ -50,7 +73,8 @@ def get_card_product_service(session: Session = Depends(get_session)) -> CardPro
 
 def get_class_catalog_service(session: Session = Depends(get_session)) -> ClassCatalogService:
     return ClassCatalogService(
-        CourseRepository(session), RoomRepository(session), CoachProfileRepository(session)
+        CourseRepository(session), RoomRepository(session), CoachProfileRepository(session),
+        AdminUserRepository(session),
     )
 
 
@@ -103,6 +127,8 @@ __all__ = [
     "get_current_user",
     "get_current_admin",
     "get_auth_service",
+    "get_wechat_auth_service",
+    "get_wechat_binding_recovery_service",
     "get_member_service",
     "get_card_product_service",
     "get_class_catalog_service",

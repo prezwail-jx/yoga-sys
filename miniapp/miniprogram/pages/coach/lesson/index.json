@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "私教课时签到",
+  "usingComponents": {
+    "async-state": "/components/async-state/index"
+  }
+}

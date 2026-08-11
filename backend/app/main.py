@@ -7,8 +7,10 @@ from app.api.routes import account_bindings, class_bookings, class_sessions, pri
 from app.api.middleware.audit_rejections import RejectedAuditMiddleware
 from app.api.middleware.request_context import RequestContextMiddleware
 from app.infra.observability import configure_observability
+from app.core.wechat_config import get_wechat_config
 
 def create_app() -> FastAPI:
+    get_wechat_config()
     configure_observability()
     app = FastAPI(title="Yoga Sys API", version="0.2.0")
     app.add_middleware(RejectedAuditMiddleware)

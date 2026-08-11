@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "正在进入",
+  "usingComponents": {
+    "async-state": "/components/async-state/index"
+  }
+}

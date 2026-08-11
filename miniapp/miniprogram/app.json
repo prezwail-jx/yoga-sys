@@ -1,0 +1,29 @@
+{
+  "pages": [
+    "pages/startup/index",
+    "pages/bind/index",
+    "pages/workspace/index",
+    "pages/account/index",
+    "pages/member/schedule/index",
+    "pages/member/private-training/index",
+    "pages/member/bookings/index",
+    "pages/member/cards/index",
+    "pages/member/index",
+    "pages/coach/schedule/index",
+    "pages/coach/roster/index",
+    "pages/coach/availability/index",
+    "pages/coach/workload/index",
+    "pages/coach/lesson/index",
+    "pages/coach/index",
+    "pages/forbidden/index"
+  ],
+  "window": {
+    "backgroundColor": "#f4f0e8",
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#173f35",
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "Yoga Studio"
+  },
+  "sitemapLocation": "sitemap.json",
+  "style": "v2"
+}

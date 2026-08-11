@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { AccountBindingInput, Member, MemberInput, MemberStatus } from "~/types/domain"
+import type { AccountBindingInput, Member, MemberInput, MemberStatus, PasswordResetInput } from "~/types/domain"
+import { accountOpeningError, isUsernameConflict, memberAccountPresentation, passwordValidationError, wechatBindingPresentation } from "~/utils/accountManagement"
 import { getApiErrorMessage } from "~/utils/errors"
 
 definePageMeta({ middleware: "require-admin" })
@@ -17,7 +18,11 @@ const successMessage = ref("")
 const accountTarget = ref<Member | null>(null)
 const accountSubmit = useIdempotentSubmit()
 const accountForm = reactive<AccountBindingInput>({ username: "", initialPassword: "" })
-const boundMemberIds = ref(new Set<string>())
+const resetForm = reactive<PasswordResetInput>({ newPassword: "" })
+const resetConfirmation = ref("")
+const wechatBound = ref(false)
+const wechatLoading = ref(false)
+const confirmUnbind = ref(false)
 
 const newForm = (): MemberInput => ({
   name: "",
@@ -112,6 +117,43 @@ function openAccount(member: Member) {
   accountTarget.value = member
   accountForm.username = ""
   accountForm.initialPassword = ""
+  resetForm.newPassword = ""
+  resetConfirmation.value = ""
+  wechatBound.value = false
+  confirmUnbind.value = false
+  if (member.hasAccount && member.accountId) {
+    loadWechatBindingStatus(member.accountId)
+  }
+}
+
+async function loadWechatBindingStatus(accountId: string) {
+  wechatLoading.value = true
+  try {
+    const status = await api.getWechatBindingStatus(accountId)
+    wechatBound.value = status.bound
+  } catch {
+    wechatBound.value = false
+  } finally {
+    wechatLoading.value = false
+  }
+}
+
+async function unbindWechatAccount() {
+  if (!accountTarget.value?.accountId) return
+  const accountId = accountTarget.value.accountId
+  pending.value = true
+  errorMessage.value = ""
+  successMessage.value = ""
+  try {
+    await api.unbindWechat(accountId)
+    wechatBound.value = false
+    confirmUnbind.value = false
+    successMessage.value = `已解除 ${accountTarget.value.name} 的微信绑定。`
+  } catch (error: unknown) {
+    errorMessage.value = getApiErrorMessage(error, "微信解绑失败，请确认该账号已绑定微信")
+  } finally {
+    pending.value = false
+  }
 }
 
 async function createAccount() {
@@ -125,11 +167,29 @@ async function createAccount() {
       key => api.createMemberAccount(member.id, { ...accountForm }, key),
     )
     accountSubmit.reset()
-    boundMemberIds.value = new Set([...boundMemberIds.value, member.id])
     accountTarget.value = null
     successMessage.value = `已为 ${member.name} 开通账号 ${binding.username}`
+    await refresh()
   } catch (error: unknown) {
-    errorMessage.value = getApiErrorMessage(error, "会员账号开通失败")
+    errorMessage.value = isUsernameConflict(error) ? accountOpeningError(error, "会员") : getApiErrorMessage(error, "会员账号开通失败")
+  }
+}
+
+async function resetPassword() {
+  if (!accountTarget.value) return
+  errorMessage.value = passwordValidationError(resetForm.newPassword, resetConfirmation.value)
+  successMessage.value = ""
+  if (errorMessage.value) return
+  pending.value = true
+  const member = accountTarget.value
+  try {
+    await api.resetMemberPassword(member.id, { ...resetForm })
+    accountTarget.value = null
+    successMessage.value = `已重置 ${member.name} 的登录密码，新密码立即生效。`
+  } catch (error: unknown) {
+    errorMessage.value = getApiErrorMessage(error, "密码重置失败，请确认该会员已开通账号")
+  } finally {
+    pending.value = false
   }
 }
 </script>
@@ -138,7 +198,7 @@ async function createAccount() {
   <section class="panel">
     <div class="section-heading">
       <div>
-        <h2>会员管理</h2>
+        <h2>会员列表</h2>
         <p class="hint">真实数据 · 共 {{ data?.total || 0 }} 位会员</p>
       </div>
       <button type="button" @click="openCreate">新增会员</button>
@@ -161,21 +221,22 @@ async function createAccount() {
     <CommonAsyncState :status="status" :empty="!data?.items.length" pending-text="正在加载会员…" empty-text="暂无符合条件的会员" :error-message="error?.statusMessage || '会员加载失败'" @retry="refresh">
     <div class="table-wrap">
       <table>
-        <thead><tr><th>姓名</th><th>手机号</th><th>状态</th><th>入会日期</th><th>操作</th></tr></thead>
+        <thead><tr><th>姓名</th><th>手机号</th><th>状态</th><th>账号状态</th><th>入会日期</th><th>操作</th></tr></thead>
         <tbody>
           <tr v-for="member in data?.items || []" :key="member.id">
             <td>{{ member.name }}</td>
             <td>{{ member.phone }}</td>
             <td><span class="status-badge">{{ member.status }}</span></td>
+            <td>
+              <div class="account-status">
+                <span :class="['account-badge', member.hasAccount ? 'is-open' : 'is-closed']">{{ memberAccountPresentation(member.hasAccount).label }}</span>
+                <span v-if="member.username" class="account-username">{{ member.username }}</span>
+              </div>
+            </td>
             <td>{{ member.joinDate }}</td>
-            <td class="actions">
-              <NuxtLink class="button-secondary record-link" :to="`/members/${member.id}/timeline`">业务记录</NuxtLink>
-              <button class="button-secondary" type="button" @click="openEdit(member)">编辑</button>
-              <button class="button-secondary" type="button" :disabled="boundMemberIds.has(member.id) || member.status === 'disabled'" @click="openAccount(member)">{{ boundMemberIds.has(member.id) ? "账号已开通" : "开通账号" }}</button>
-              <button v-if="member.status === 'normal'" class="button-secondary" type="button" @click="changeStatus(member, 'paused')">暂停</button>
-              <button v-if="member.status === 'paused'" class="button-secondary" type="button" @click="changeStatus(member, 'normal')">恢复</button>
-              <button v-if="member.status !== 'disabled'" class="button-danger" type="button" @click="changeStatus(member, 'disabled')">禁用</button>
-              <button class="button-danger" type="button" @click="removeMember(member)">归档</button>
+            <td class="actions primary-actions">
+              <button type="button" @click="openAccount(member)">业务管理</button>
+              <NuxtLink class="button-primary record-link" :to="`/members/${member.id}/timeline`">业务记录</NuxtLink>
             </td>
           </tr>
         </tbody>
@@ -213,20 +274,71 @@ async function createAccount() {
     </form>
   </section>
 
-  <section v-if="accountTarget" class="panel account-panel">
+  <section v-if="accountTarget" class="panel account-panel" aria-labelledby="member-management-title">
     <div class="section-heading">
-      <div><h2>为 {{ accountTarget.name }} 开通会员账号</h2><p class="hint">账号将唯一绑定该会员，初始密码不会在创建后回显。</p></div>
-      <button class="button-secondary" type="button" :disabled="accountSubmit.pending.value" @click="accountTarget = null">关闭</button>
+      <div><h2 id="member-management-title">{{ accountTarget.name }} · 业务管理</h2><p class="hint">管理会员资料、状态和登录账号，不影响既有业务记录。</p></div>
+      <button class="button-secondary" type="button" :disabled="accountSubmit.pending.value || pending" @click="accountTarget = null">关闭</button>
     </div>
-    <form class="form-grid" @submit.prevent="createAccount">
+    <div class="management-actions">
+      <button class="button-secondary" type="button" @click="openEdit(accountTarget); accountTarget = null">编辑资料</button>
+      <button v-if="accountTarget.status === 'normal'" class="button-secondary" type="button" @click="changeStatus(accountTarget, 'paused'); accountTarget = null">暂停会员</button>
+      <button v-if="accountTarget.status === 'paused'" class="button-secondary" type="button" @click="changeStatus(accountTarget, 'normal'); accountTarget = null">恢复会员</button>
+      <button v-if="accountTarget.status === 'disabled'" type="button" @click="changeStatus(accountTarget, 'normal'); accountTarget = null">重新启用</button>
+      <button v-else class="button-danger" type="button" @click="changeStatus(accountTarget, 'disabled'); accountTarget = null">禁用会员</button>
+      <button class="button-danger button-subtle-danger" type="button" @click="removeMember(accountTarget); accountTarget = null">归档会员</button>
+    </div>
+    <form v-if="!accountTarget.hasAccount" class="form-grid account-form" @submit.prevent="createAccount">
+      <div class="full-width"><h3>开通登录账号</h3><p class="uniqueness-note">用户名在会员、教练和管理员账号中全局唯一，开通后初始密码不会回显。</p></div>
       <label>用户名<input v-model="accountForm.username" autocomplete="off" required minlength="3" maxlength="64" /></label>
       <label>初始密码<input v-model="accountForm.initialPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="128" /></label>
       <div class="full-width form-actions"><button type="submit" :disabled="accountSubmit.pending.value">{{ accountSubmit.pending.value ? "开通中…" : "确认开通" }}</button></div>
     </form>
+    <form v-else class="form-grid account-form" @submit.prevent="resetPassword">
+      <div class="full-width"><h3>重置登录密码</h3><p class="hint">账号 {{ accountTarget.username }}，提交后旧密码立即失效。</p></div>
+      <label>新密码<input v-model="resetForm.newPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="128" /></label>
+      <label>确认新密码<input v-model="resetConfirmation" type="password" autocomplete="new-password" required minlength="8" maxlength="128" /></label>
+      <div class="full-width form-actions"><button type="submit" :disabled="pending">{{ pending ? "重置中…" : "确认重置" }}</button></div>
+    </form>
+    <div v-if="accountTarget.hasAccount" class="wechat-binding-section">
+      <div class="section-heading">
+        <div><h3>微信绑定</h3><p class="hint">{{ wechatBindingPresentation(wechatBound).description }}</p></div>
+      </div>
+      <div class="wechat-status">
+        <span :class="['account-badge', wechatBound ? 'is-open' : 'is-closed']">{{ wechatBindingPresentation(wechatBound).label }}</span>
+      </div>
+      <div v-if="wechatBound && !confirmUnbind" class="form-actions">
+        <button class="button-danger" type="button" @click="confirmUnbind = true">解除微信绑定</button>
+      </div>
+      <div v-if="wechatBound && confirmUnbind" class="unbind-confirm">
+        <p class="warning-text">确认解除 {{ accountTarget.name }} 的微信绑定？该身份将不能再通过微信登录，但已签发的短期令牌在使用期限内仍然有效。</p>
+        <div class="form-actions">
+          <button class="button-danger" type="button" :disabled="pending" @click="unbindWechatAccount">{{ pending ? "解绑中…" : "确认解除" }}</button>
+          <button class="button-secondary" type="button" @click="confirmUnbind = false">取消</button>
+        </div>
+      </div>
+    </div>
   </section>
 </template>
 
 <style scoped>
 .success-message { padding: 10px 12px; color: #37622a; background: #f0f9ec; border-radius: 8px; }
 .account-panel { border-top: 4px solid var(--brand); }
+.account-status { display: grid; gap: 4px; justify-items: start; }
+.account-badge { display: inline-flex; padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.account-badge.is-open { color: #174e91; background: #e6f0ff; border: 1px solid #a9c9f7; }
+.account-badge.is-closed { color: #59636e; background: #eef0f2; border: 1px solid #d3d7dc; }
+.account-username { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.button-primary { display: inline-flex; align-items: center; padding: 9px 14px; color: #fff; background: var(--brand); border-radius: 10px; text-decoration: none; }
+.primary-actions { flex-wrap: nowrap; }
+.management-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+.account-form { margin-top: 18px; }
+.account-form h3, .account-form p { margin: 0; }
+.uniqueness-note { margin-top: 6px !important; color: #6f4a12; font-weight: 600; }
+.button-subtle-danger { opacity: .8; }
+.wechat-binding-section { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 18px; }
+.wechat-binding-section h3 { margin: 0 0 4px; }
+.wechat-status { margin: 8px 0 12px; }
+.unbind-confirm { margin-top: 12px; padding: 12px; background: #fff3f0; border: 1px solid #f5c6cb; border-radius: 8px; }
+.warning-text { color: #a71d2a; font-weight: 600; margin: 0 0 8px; }
+@media (max-width: 760px) { .primary-actions { flex-direction: column; align-items: stretch; } .primary-actions > * { justify-content: center; text-align: center; } }
 </style>

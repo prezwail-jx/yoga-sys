@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -17,16 +17,18 @@ from app.core.security import (
     get_password_hash,
     verify_password,
 )
-from app.schemas.account_binding import CreateAccountBindingRequest
-from app.schemas.auth import LoginRequest
+from app.schemas.account_binding import CreateAccountBindingRequest, ResetPasswordRequest
+from app.schemas.auth import ChangePasswordRequest, LoginRequest
 from app.services.account_binding import AccountBindingService
 from app.services.auth import AuthService
+from app.services.member import MemberService
 
 
 class AccountRepo:
     def __init__(self):
         self.accounts = []
         self.locked_usernames = []
+        self.member_batch_queries = []
 
     def lock_username(self, username):
         self.locked_usernames.append(username)
@@ -37,6 +39,10 @@ class AccountRepo:
     def get_by_member_id(self, member_id):
         return next((item for item in self.accounts if item.member_id == member_id), None)
 
+    def get_by_member_ids(self, member_ids):
+        self.member_batch_queries.append(member_ids)
+        return [item for item in self.accounts if item.member_id in member_ids]
+
     def get_by_coach_profile_id(self, coach_profile_id):
         return next((item for item in self.accounts if item.coach_profile_id == coach_profile_id), None)
 
@@ -44,6 +50,9 @@ class AccountRepo:
         account.id = uuid4()
         account.created_at = datetime.now(timezone.utc)
         self.accounts.append(account)
+        return account
+
+    def update(self, account):
         return account
 
 
@@ -250,3 +259,123 @@ def test_current_user_rejects_unbound_coach_token():
             HTTPAuthorizationCredentials(scheme="Bearer", credentials=token),
         )
     assert error.value.status_code == 401
+
+
+@pytest.mark.parametrize(
+    ("role", "claim_name"),
+    [("member", "memberId"), ("coach", "coachProfileId")],
+)
+def test_current_user_rejects_malformed_resource_claim(role, claim_name):
+    token = create_access_token({"sub": f"bad-{role}", "role": role, claim_name: "not-a-uuid"})
+
+    with pytest.raises(HTTPException) as error:
+        get_current_user(
+            Request({"type": "http", "method": "GET", "path": "/auth/me", "headers": []}),
+            HTTPAuthorizationCredentials(scheme="Bearer", credentials=token),
+        )
+
+    assert error.value.status_code == 401
+
+
+@pytest.mark.parametrize("resource_type", ["member", "coach"])
+def test_admin_reset_replaces_hash_and_missing_account_is_404(resource_type):
+    resource_id = uuid4()
+    account = SimpleNamespace(
+        id=uuid4(), username=f"{resource_type}-user", role=resource_type,
+        member_id=resource_id if resource_type == "member" else None,
+        coach_profile_id=resource_id if resource_type == "coach" else None,
+        password_hash=get_password_hash("old-password"),
+    )
+    accounts = AccountRepo()
+    accounts.accounts.append(account)
+    service = AccountBindingService(accounts, ResourceRepo(), ResourceRepo())
+    reset = ResetPasswordRequest(newPassword="new-password")
+
+    if resource_type == "member":
+        updated = service.reset_member_password(resource_id, reset)
+        missing_call = service.reset_member_password
+    else:
+        updated = service.reset_coach_password(resource_id, reset)
+        missing_call = service.reset_coach_password
+
+    assert not verify_password("old-password", updated.password_hash)
+    assert verify_password("new-password", updated.password_hash)
+    with pytest.raises(HTTPException) as missing:
+        missing_call(uuid4(), reset)
+    assert missing.value.status_code == 404
+
+
+def test_member_changes_password_only_after_old_password_verification():
+    account = SimpleNamespace(
+        id=uuid4(), username="member-user", role="member", member_id=uuid4(),
+        coach_profile_id=None, password_hash=get_password_hash("old-password"),
+    )
+    accounts = AccountRepo()
+    accounts.accounts.append(account)
+    service = AuthService(accounts, ResourceRepo(), ResourceRepo())
+
+    with pytest.raises(HTTPException) as wrong_password:
+        service.change_member_password(
+            account.username,
+            ChangePasswordRequest(oldPassword="wrong-password", newPassword="new-password"),
+        )
+    assert wrong_password.value.status_code == 401
+    assert verify_password("old-password", account.password_hash)
+
+    service.change_member_password(
+        account.username,
+        ChangePasswordRequest(oldPassword="old-password", newPassword="new-password"),
+    )
+    assert not verify_password("old-password", account.password_hash)
+    assert verify_password("new-password", account.password_hash)
+
+
+@pytest.mark.parametrize("role", ["admin", "coach"])
+def test_non_member_cannot_use_self_service_password_change(role):
+    account = SimpleNamespace(
+        username=f"{role}-user", role=role, password_hash=get_password_hash("old-password")
+    )
+    accounts = AccountRepo()
+    accounts.accounts.append(account)
+
+    with pytest.raises(HTTPException) as forbidden:
+        AuthService(accounts, ResourceRepo(), ResourceRepo()).change_member_password(
+            account.username,
+            ChangePasswordRequest(oldPassword="old-password", newPassword="new-password"),
+        )
+    assert forbidden.value.status_code == 403
+    assert verify_password("old-password", account.password_hash)
+
+
+@pytest.mark.parametrize("length", [7, 129])
+def test_new_password_length_boundary_is_rejected(length):
+    with pytest.raises(ValueError):
+        ResetPasswordRequest(newPassword="x" * length)
+    with pytest.raises(ValueError):
+        ChangePasswordRequest(oldPassword="old-password", newPassword="x" * length)
+
+
+def test_member_list_loads_account_status_in_one_batch():
+    now = datetime.now(timezone.utc)
+    members = [
+        SimpleNamespace(
+            id=uuid4(), name=f"Member {index}", phone=f"1390000000{index}",
+            gender=None, status="normal", join_date=date(2026, 8, 5), birthday=None,
+            note=None, emergency_contact=None, deleted_at=None, created_at=now, updated_at=now,
+        )
+        for index in range(2)
+    ]
+    member_repo = SimpleNamespace(list=lambda *args: (members, len(members)))
+    accounts = AccountRepo()
+    accounts.accounts.append(
+        SimpleNamespace(id=uuid4(), member_id=members[0].id, username="bound-member")
+    )
+
+    responses, total = MemberService(member_repo, accounts).list_members()
+
+    assert total == 2
+    assert accounts.member_batch_queries == [[member.id for member in members]]
+    assert responses[0].has_account is True
+    assert responses[0].username == "bound-member"
+    assert responses[1].has_account is False
+    assert responses[1].username is None

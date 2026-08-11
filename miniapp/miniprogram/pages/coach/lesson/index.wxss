@@ -1,0 +1,9 @@
+@import "../../../styles/coach.wxss";
+
+.lesson-textarea {
+  min-height: 180rpx;
+}
+
+.coach-form > .coach-button {
+  margin-top: 24rpx;
+}

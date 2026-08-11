@@ -1,0 +1,17 @@
+<view class="page-shell">
+  <text class="eyebrow">Lesson record</text>
+  <view class="title">私教课时签到</view>
+  <async-state wx:if="{{mode !== 'ready'}}" mode="{{mode}}" message="{{message}}" bindretry="load" />
+  <view wx:else class="coach-form">
+    <text class="coach-card__title">{{booking.memberName}}</text>
+    <text class="coach-card__meta">{{booking.startAt}} · {{booking.durationMinutes}} 分钟</text>
+    <text class="coach-form__label">训练内容（必填）</text>
+    <textarea class="coach-form__field lesson-textarea" maxlength="5000" value="{{content}}" bindinput="updateContent" placeholder="动作、组数、训练重点" />
+    <text class="coach-form__label">消耗课时</text>
+    <input class="coach-form__field" type="digit" value="{{consumedHours}}" bindinput="updateHours" />
+    <text class="coach-form__label">会员状态备注</text>
+    <textarea class="coach-form__field lesson-textarea" maxlength="5000" value="{{memberStatusNotes}}" bindinput="updateNotes" placeholder="身体状态、注意事项（可选）" />
+    <view wx:if="{{feedback}}" class="coach-feedback">{{feedback}}</view>
+    <button class="coach-button" loading="{{pending}}" disabled="{{pending}}" bindtap="submit">确认课时并签到</button>
+  </view>
+</view>

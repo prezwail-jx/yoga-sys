@@ -1,0 +1,35 @@
+<view class="page-shell">
+  <text class="eyebrow">My history</text>
+  <view class="title">我的预约</view>
+  <view class="booking-tabs">
+    <button class="booking-tabs__item {{tab === 'class' ? 'booking-tabs__item--active' : ''}}" data-tab="class" bindtap="switchTab">团课</button>
+    <button class="booking-tabs__item {{tab === 'private' ? 'booking-tabs__item--active' : ''}}" data-tab="private" bindtap="switchTab">私教</button>
+  </view>
+  <view wx:if="{{feedback}}" class="feedback">{{feedback}}</view>
+  <async-state wx:if="{{mode !== 'ready'}}" mode="{{mode}}" message="{{message}}" bindretry="load" />
+  <button wx:if="{{mode === 'empty'}}" class="primary-button" bindtap="browse">去看看可预约时段</button>
+  <view wx:elif="{{tab === 'class'}}">
+    <view wx:for="{{classItems}}" wx:key="id" wx:for-item="booking" class="member-card">
+      <view class="member-card__headline">
+        <text class="member-card__title">{{booking.courseName}}</text>
+        <text class="member-card__tag">{{booking.status}}</text>
+      </view>
+      <text class="member-card__meta">{{booking.dateLabel}} · {{booking.timeLabel}}</text>
+      <text class="member-card__meta">{{booking.coachName}} · {{booking.roomName}}</text>
+      <text class="member-card__meta">{{booking.cutoffMessage}}</text>
+      <button wx:if="{{booking.canCancel}}" class="member-card__action" loading="{{pendingId === booking.id}}" disabled="{{pendingId !== ''}}" data-id="{{booking.id}}" bindtap="cancelClass">取消预约</button>
+    </view>
+  </view>
+  <view wx:elif="{{tab === 'private'}}">
+    <view wx:for="{{privateItems}}" wx:key="id" wx:for-item="booking" class="member-card">
+      <view class="member-card__headline">
+        <text class="member-card__title">{{booking.coachName}}</text>
+        <text class="member-card__tag">{{booking.status}}</text>
+      </view>
+      <text class="member-card__meta">{{booking.dateLabel}} · {{booking.timeLabel}}</text>
+      <text wx:if="{{booking.memberMessage}}" class="member-card__meta">留言：{{booking.memberMessage}}</text>
+      <button wx:if="{{booking.canCancel}}" class="member-card__action" loading="{{pendingId === booking.id}}" disabled="{{pendingId !== ''}}" data-id="{{booking.id}}" bindtap="cancelPrivate">取消申请</button>
+    </view>
+  </view>
+  <button wx:if="{{mode === 'ready' && (tab === 'class' ? classItems.length : privateItems.length) < total}}" class="load-more" bindtap="loadMore">加载更多</button>
+</view>

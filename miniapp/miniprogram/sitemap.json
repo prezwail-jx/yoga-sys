@@ -1,0 +1,4 @@
+{
+  "desc": "Yoga Studio Mini Program sitemap",
+  "rules": [{ "action": "disallow", "page": "*" }]
+}

@@ -10,7 +10,7 @@ from app.schemas.account_binding import AccountBindingResponse, CreateAccountBin
 
 CONTRACT_PATH = (
     Path(__file__).resolve().parents[3]
-    / "openspec/changes/group-class-booking-loop/contracts/group-class-booking.openapi.yaml"
+    / "specs/contracts/group-class-booking.openapi.yaml"
 )
 
 

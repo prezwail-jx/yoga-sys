@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "教练工作",
+  "usingComponents": {
+    "async-state": "/components/async-state/index"
+  }
+}

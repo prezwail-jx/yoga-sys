@@ -63,7 +63,7 @@ def get_member(
     service: MemberService = Depends(get_member_service),
     _: CurrentUser = Depends(get_current_admin),
 ):
-    return service.get_member(memberId)
+    return service.get_member_response(memberId)
 
 
 @router.patch("/{memberId}", response_model=MemberResponse)

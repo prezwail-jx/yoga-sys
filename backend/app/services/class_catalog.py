@@ -7,10 +7,12 @@ from app.domain.coach_profile import CoachProfile
 from app.domain.course import Course
 from app.domain.room import Room
 from app.repositories.class_catalog import CoachProfileRepository, CourseRepository, RoomRepository
+from app.repositories.admin_user import AdminUserRepository
 from app.schemas.class_catalog import (
     CreateCoachRequest,
     CreateCourseRequest,
     CreateRoomRequest,
+    CoachResponse,
     UpdateCoachRequest,
     UpdateCourseRequest,
     UpdateRoomRequest,
@@ -23,10 +25,12 @@ class ClassCatalogService:
         course_repo: CourseRepository,
         room_repo: RoomRepository,
         coach_repo: CoachProfileRepository,
+        account_repo: AdminUserRepository | None = None,
     ):
         self.course_repo = course_repo
         self.room_repo = room_repo
         self.coach_repo = coach_repo
+        self.account_repo = account_repo
 
     @staticmethod
     def _not_found(kind: str) -> HTTPException:
@@ -129,8 +133,28 @@ class ClassCatalogService:
             raise self._not_found("Coach")
         return coach
 
+    def get_coach_response(self, coach_id: UUID) -> CoachResponse:
+        coach = self.get_coach(coach_id)
+        account = self.account_repo.get_by_coach_profile_id(coach_id) if self.account_repo else None
+        return self._coach_response(coach, account)
+
     def list_coaches(self, **filters):
-        return self.coach_repo.list(**filters)
+        coaches, total = self.coach_repo.list(**filters)
+        accounts = (
+            self.account_repo.get_by_coach_profile_ids([coach.id for coach in coaches])
+            if self.account_repo
+            else []
+        )
+        accounts_by_coach = {account.coach_profile_id: account for account in accounts}
+        return [self._coach_response(coach, accounts_by_coach.get(coach.id)) for coach in coaches], total
+
+    @staticmethod
+    def _coach_response(coach: CoachProfile, account=None) -> CoachResponse:
+        return CoachResponse.model_validate(coach).model_copy(update={
+            "has_account": account is not None,
+            "username": account.username if account is not None else None,
+            "account_id": account.id if account is not None else None,
+        })
 
     def update_coach(self, coach_id: UUID, request: UpdateCoachRequest) -> CoachProfile:
         coach = self.get_coach(coach_id)

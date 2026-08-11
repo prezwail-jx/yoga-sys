@@ -10,7 +10,7 @@ type BackendOptions = {
 type BackendError = {
   statusCode?: number
   data?: { detail?: string }
-  response?: { status?: number; _data?: { detail?: string } }
+  response?: { status?: number; _data?: { detail?: string }; headers?: Headers }
 }
 
 export async function backendRequest<T>(event: H3Event, path: string, options: BackendOptions = {}): Promise<T> {
@@ -28,6 +28,11 @@ export async function backendRequest<T>(event: H3Event, path: string, options: B
     const backendError = error as BackendError
     const statusCode = backendError.response?.status || backendError.statusCode || 502
     const detail = backendError.response?._data?.detail || backendError.data?.detail || "后端服务不可用"
-    throw createError({ statusCode, statusMessage: detail, data: backendError.response?._data })
+    const traceId = backendError.response?.headers?.get("x-trace-id") || undefined
+    throw createError({
+      statusCode,
+      statusMessage: detail,
+      data: { ...(backendError.response?._data || {}), ...(traceId ? { traceId } : {}) },
+    })
   }
 }

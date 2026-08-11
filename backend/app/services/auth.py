@@ -2,14 +2,23 @@ from datetime import timedelta
 
 from fastapi import HTTPException, status
 
-from app.core.security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, verify_password
+from app.core.security import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    create_access_token,
+    get_password_hash,
+    verify_password,
+)
 from app.repositories.admin_user import AdminUserRepository
 from app.repositories.class_catalog import CoachProfileRepository
 from app.repositories.member import MemberRepository
-from app.schemas.auth import LoginRequest, LoginResponse
+from app.schemas.auth import ChangePasswordRequest, LoginRequest, LoginResponse
 
 
 _LOGIN_ENABLED_MEMBER_STATUSES = {"normal", "paused", "expired"}
+
+
+class AccountIneligibleError(ValueError):
+    pass
 
 
 class AuthService:
@@ -32,24 +41,48 @@ class AuthService:
         )
 
     def login(self, request: LoginRequest) -> LoginResponse:
-        user = self.admin_user_repo.get_by_username(request.username)
-        if not user or not verify_password(request.password, user.password_hash):
+        user = self.authenticate_credentials(request.username, request.password)
+        if user is None:
             raise self._unauthorized()
 
+        try:
+            return self.issue_token_for_account(user)
+        except AccountIneligibleError:
+            raise self._unauthorized()
+
+    def authenticate_credentials(self, username: str, password: str):
+        user = self.admin_user_repo.get_by_username(username)
+        if not user or not verify_password(password, user.password_hash):
+            return None
+        return user
+
+    def issue_token_for_account(self, user) -> LoginResponse:
+        claims = self.build_claims(user)
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(data=claims, expires_delta=access_token_expires)
+        return LoginResponse(access_token=access_token, role=user.role)
+
+    def build_claims(self, user) -> dict[str, str]:
         claims: dict[str, str] = {"sub": user.username, "role": user.role}
         if user.role == "member":
             member = self.member_repo.get_by_id(user.member_id) if user.member_id else None
             if member is None or member.status not in _LOGIN_ENABLED_MEMBER_STATUSES:
-                raise self._unauthorized()
+                raise AccountIneligibleError("member account is not login eligible")
             claims["memberId"] = str(member.id)
         elif user.role == "coach":
             coach = self.coach_repo.get_by_id(user.coach_profile_id) if user.coach_profile_id else None
             if coach is None or not coach.enabled:
-                raise self._unauthorized()
+                raise AccountIneligibleError("coach account is not login eligible")
             claims["coachProfileId"] = str(coach.id)
         elif user.role != "admin":
-            raise self._unauthorized()
+            raise AccountIneligibleError("unknown account role")
+        return claims
 
-        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(data=claims, expires_delta=access_token_expires)
-        return LoginResponse(access_token=access_token, role=user.role)
+    def change_member_password(self, username: str, request: ChangePasswordRequest):
+        user = self.admin_user_repo.get_by_username(username)
+        if user is None or user.role != "member":
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+        if not verify_password(request.old_password, user.password_hash):
+            raise self._unauthorized()
+        user.password_hash = get_password_hash(request.new_password)
+        return self.admin_user_repo.update(user)

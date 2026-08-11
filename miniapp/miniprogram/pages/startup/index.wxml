@@ -1,0 +1,5 @@
+<view class="page-shell startup">
+  <text class="eyebrow">Yoga Studio</text>
+  <view class="startup__orbit"></view>
+  <async-state mode="{{mode}}" message="{{message}}" bindretry="start" />
+</view>

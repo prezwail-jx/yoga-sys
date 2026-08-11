@@ -210,3 +210,114 @@ def test_sign_in_rejects_unconfirmed_booking():
         )
 
     assert error.value.status_code == 409
+
+
+@patch("app.services.private_training.record_audit")
+def test_create_and_list_private_slots(_audit):
+    service, repo, _, coach_repo, _ = _service()
+    coach_id = uuid4()
+    slot = _slot(coach_profile_id=coach_id, status="available")
+    coach_repo.get_by_id.return_value = SimpleNamespace(id=coach_id, enabled=True)
+    repo.coach_has_private_overlap.return_value = False
+    repo.coach_has_class_overlap.return_value = False
+    repo.create_slot.return_value = slot
+    projected = {
+        "id": slot.id,
+        "coach_profile_id": coach_id,
+        "coach_name": "教练",
+        "start_at": slot.start_at,
+        "end_at": slot.end_at,
+        "duration_minutes": 60,
+        "status": "available",
+        "created_by_id": "admin-1",
+        "created_by_role": "admin",
+        "created_at": NOW,
+        "updated_at": NOW,
+    }
+    repo.list_slots.return_value = ([projected], 1)
+
+    created = service.create_slot(
+        SimpleNamespace(coach_profile_id=coach_id, start_at=slot.start_at, end_at=slot.end_at),
+        actor=_actor("admin"),
+        trace_id="trace",
+        now=NOW.replace(hour=8),
+    )
+    listed, total = service.list_slots(actor=_actor("admin"))
+
+    assert created["id"] == slot.id
+    assert listed == [projected]
+    assert total == 1
+
+
+def test_create_slot_reports_schedule_conflict():
+    service, repo, _, _, _ = _service()
+    coach_id = uuid4()
+    repo.coach_has_private_overlap.return_value = True
+
+    with pytest.raises(HTTPException) as error:
+        service.create_slot(
+            SimpleNamespace(coach_profile_id=coach_id, start_at=NOW, end_at=NOW.replace(hour=10)),
+            actor=_actor("admin"),
+            trace_id="trace",
+            now=NOW.replace(hour=8),
+        )
+
+    assert error.value.status_code == 409
+    assert error.value.detail == "private_slot_time_conflict"
+
+
+@patch("app.services.private_training.record_audit")
+def test_create_list_and_reject_private_booking(_audit):
+    service, repo, member_repo, _, _ = _service()
+    member_id = uuid4()
+    coach_id = uuid4()
+    slot = _slot(coach_profile_id=coach_id, status="available", start_at=NOW.replace(hour=12), end_at=NOW.replace(hour=13))
+    booking = _booking(availability_id=slot.id, member_id=member_id, coach_profile_id=coach_id)
+    member_repo.get_by_id.return_value = SimpleNamespace(id=member_id, status="normal")
+    repo.get_slot.return_value = slot
+    repo.member_has_private_overlap.return_value = False
+    repo.member_has_class_overlap.return_value = False
+    repo.create_booking.return_value = booking
+    repo.get_booking.return_value = booking
+    repo.get_projected_booking.side_effect = lambda _id: _projection(booking, slot)
+    repo.list_bookings.return_value = ([_projection(booking, slot)], 1)
+
+    created = service.create_booking(
+        SimpleNamespace(availability_id=slot.id, member_message="肩颈训练"),
+        actor=_actor("member", member_id=member_id),
+        trace_id="trace",
+        now=NOW,
+    )
+    listed, total = service.list_bookings(actor=_actor("member", member_id=member_id))
+    rejected = service.reject_booking(
+        booking.id,
+        actor=_actor("coach", coach_profile_id=coach_id),
+        reason="时间调整",
+        trace_id="trace",
+        now=NOW,
+    )
+
+    assert created["status"] == "pending"
+    assert total == 1
+    assert listed[0]["id"] == booking.id
+    assert rejected["status"] == "rejected"
+    assert slot.status == "available"
+
+
+def test_member_cannot_book_unavailable_private_slot():
+    service, repo, member_repo, _, _ = _service()
+    member_id = uuid4()
+    slot = _slot(status="locked", start_at=NOW.replace(hour=12), end_at=NOW.replace(hour=13))
+    member_repo.get_by_id.return_value = SimpleNamespace(id=member_id, status="normal")
+    repo.get_slot.return_value = slot
+
+    with pytest.raises(HTTPException) as error:
+        service.create_booking(
+            SimpleNamespace(availability_id=slot.id, member_message=None),
+            actor=_actor("member", member_id=member_id),
+            trace_id="trace",
+            now=NOW,
+        )
+
+    assert error.value.status_code == 409
+    assert error.value.detail == "Private slot is not available"

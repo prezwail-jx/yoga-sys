@@ -9,7 +9,7 @@ class RejectedAuditMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
         user = getattr(request.state, "current_user", None)
-        if response.status_code == 403 and user is not None and request.method in {"POST", "PATCH", "PUT", "DELETE"}:
+        if response.status_code == 403 and user is not None:
             parts = [part for part in request.url.path.split("/") if part]
             object_type = parts[0] if parts else "unknown"
             object_id = parts[1] if len(parts) > 1 else "collection"

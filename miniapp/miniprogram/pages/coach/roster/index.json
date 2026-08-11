@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "签到名册",
+  "usingComponents": {
+    "async-state": "/components/async-state/index"
+  }
+}

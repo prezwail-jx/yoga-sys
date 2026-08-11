@@ -120,3 +120,32 @@ test("管理员查看真实报表下钻并触发 Excel 导出", async ({ page })
   await page.getByRole("button", { name: "导出 Excel" }).click()
   await expect((await download).suggestedFilename()).toBe("report-transactions.xlsx")
 })
+
+test("管理员创建私教时段并看到可执行冲突提示", async ({ page }) => {
+  const currentUser = { username: "admin", role: "admin" }
+  let createCount = 0
+  await page.route("**/api/auth/login", route => route.fulfill({ json: currentUser }))
+  await page.route("**/api/auth/me", route => route.fulfill({ json: currentUser }))
+  await page.route(/\/api\/coaches\?.*/, route => route.fulfill({ json: { items: [{ id: "coach-1", name: "林教练", enabled: true }], total: 1, skip: 0, limit: 100 } }))
+  await page.route(/\/api\/private-slots\?.*/, route => route.fulfill({ json: { items: [], total: 0 } }))
+  await page.route(/\/api\/private-bookings\?.*/, route => route.fulfill({ json: { items: [], total: 0, skip: 0, limit: 100 } }))
+  await page.route("**/api/private-slots", route => {
+    createCount += 1
+    if (createCount === 1) return route.fulfill({ status: 201, json: slot })
+    return route.fulfill({ status: 409, json: { detail: "private_slot_time_conflict" } })
+  })
+
+  await page.goto("/login")
+  await page.getByRole("button", { name: "登录" }).click()
+  await page.getByRole("link", { name: "私教预约" }).click()
+  await page.getByLabel("教练").selectOption("coach-1")
+  await page.getByLabel("开始时间").fill("2030-01-08T10:00")
+  await page.getByLabel("结束时间").fill("2030-01-08T11:00")
+  await page.getByRole("button", { name: "创建时段" }).click()
+  await expect(page.getByText("私教空闲时段已创建")).toBeVisible()
+
+  await page.getByLabel("开始时间").fill("2030-01-08T10:30")
+  await page.getByLabel("结束时间").fill("2030-01-08T11:30")
+  await page.getByRole("button", { name: "创建时段" }).click()
+  await expect(page.getByText("该教练已有重叠的私教时段，请调整时间。")).toBeVisible()
+})

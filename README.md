@@ -222,7 +222,7 @@ npm test runs both Vitest unit tests and Playwright end-to-end tests.
 
 Latest recorded acceptance result:
 
-- Backend: targeted unit and contract checks passed; full contract suite currently depends on a missing archived OpenAPI fixture under `openspec/changes/group-class-booking-loop/contracts/`.
+- Backend: the full suite uses canonical OpenAPI fixtures under `specs/contracts/`; archived OpenSpec copies are historical snapshots and are not test dependencies.
 - Frontend: unit tests, focused private-training/reporting E2E, ESLint, TypeScript type checking, and production build passed in the latest local verification.
 - ESLint, TypeScript type checking, and production build passed
 

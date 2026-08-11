@@ -12,10 +12,11 @@ from app.domain.coach_profile import CoachProfile
 from app.domain.class_session import ClassSession
 from app.domain.class_booking import ClassBooking
 from app.domain.private_training import PrivateAvailability, PrivateBooking, PrivateLessonRecord
+from app.domain.wechat_identity import WechatIdentity, WechatBindingChallenge
 
 __all__ = [
     "Base", "AdminUser", "Member", "CardProduct", "AuditLog", "MemberCard",
     "CardTransaction", "WriteOffEvent", "Course", "Room", "CoachProfile",
     "ClassSession", "ClassBooking", "PrivateAvailability", "PrivateBooking",
-    "PrivateLessonRecord",
+    "PrivateLessonRecord", "WechatIdentity", "WechatBindingChallenge",
 ]

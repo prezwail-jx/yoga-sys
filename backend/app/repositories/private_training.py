@@ -51,6 +51,14 @@ class PrivateTrainingRepository:
         self.session.refresh(booking)
         return booking
 
+    def slot_has_active_booking(self, slot_id: UUID) -> bool:
+        return self.session.scalar(
+            select(PrivateBooking.id).where(
+                PrivateBooking.availability_id == slot_id,
+                PrivateBooking.status.in_(ACTIVE_BOOKING_STATUSES),
+            ).limit(1)
+        ) is not None
+
     def update_booking(self, booking: PrivateBooking) -> PrivateBooking:
         self.session.add(booking)
         self.session.flush()

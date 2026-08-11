@@ -149,7 +149,7 @@ def get_coach(
     coachId: UUID, service: ClassCatalogService = Depends(get_class_catalog_service),
     _: CurrentUser = Depends(get_current_user),
 ):
-    return service.get_coach(coachId)
+    return service.get_coach_response(coachId)
 
 
 @router.patch("/coaches/{coachId}", response_model=CoachResponse)

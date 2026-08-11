@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "私教预约",
+  "usingComponents": {
+    "async-state": "/components/async-state/index"
+  }
+}

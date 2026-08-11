@@ -63,13 +63,16 @@ class PrivateTrainingService:
         coach_id = UUID(actor.coach_profile_id) if actor.role == "coach" and actor.coach_profile_id else None
         return self.repo.list_bookings(member_id=member_id, coach_id=coach_id, status=status, skip=skip, limit=limit)
 
-    def create_slot(self, payload, *, actor: CurrentUser, trace_id: str) -> dict:
+    def create_slot(self, payload, *, actor: CurrentUser, trace_id: str, now: datetime) -> dict:
         coach_id = self._coach_scope(actor, payload.coach_profile_id)
+        self._enabled_coach(coach_id)
+        self._require_future(payload.start_at, now)
         with business_span("private_training.slot_create", coach_id=coach_id, actor_role=actor.role):
             return self._create_slot(coach_id, payload.start_at, payload.end_at, actor, trace_id=trace_id)
 
-    def generate_week(self, payload, *, actor: CurrentUser, trace_id: str) -> tuple[list[dict], list[dict]]:
+    def generate_week(self, payload, *, actor: CurrentUser, trace_id: str, now: datetime) -> tuple[list[dict], list[dict]]:
         coach_id = self._coach_scope(actor, payload.coach_profile_id)
+        self._enabled_coach(coach_id)
         week_start = payload.week_start.astimezone(SHANGHAI).date()
         hour, minute = [int(part) for part in payload.start_time.split(":", 1)]
         created: list[dict] = []
@@ -80,6 +83,9 @@ class PrivateTrainingService:
             local_start = datetime.combine(week_start + timedelta(days=weekday), time(hour, minute), SHANGHAI)
             start_at = local_start.astimezone(timezone.utc)
             end_at = start_at + timedelta(minutes=payload.duration_minutes)
+            if start_at <= self._utc(now):
+                conflicts.append({"start_at": start_at, "end_at": end_at, "reason": "private_slot_in_past"})
+                continue
             reason = self._slot_conflict(coach_id, start_at, end_at)
             if reason:
                 conflicts.append({"start_at": start_at, "end_at": end_at, "reason": reason})
@@ -87,12 +93,14 @@ class PrivateTrainingService:
             created.append(self._create_slot(coach_id, start_at, end_at, actor, trace_id=trace_id, skip_conflict_check=True))
         return created, conflicts
 
-    def update_slot(self, slot_id: UUID, payload, *, actor: CurrentUser, trace_id: str) -> dict:
+    def update_slot(self, slot_id: UUID, payload, *, actor: CurrentUser, trace_id: str, now: datetime) -> dict:
         slot = self._slot(slot_id, for_update=True)
         self._authorize_coach_or_admin(slot.coach_profile_id, actor)
         if slot.status != "available":
             raise HTTPException(status_code=409, detail="Only available slot can be updated")
         coach_id = self._coach_scope(actor, payload.coach_profile_id or slot.coach_profile_id)
+        self._enabled_coach(coach_id)
+        self._require_future(payload.start_at, now)
         reason = self._slot_conflict(coach_id, payload.start_at, payload.end_at, exclude_slot_id=slot.id)
         if reason:
             raise HTTPException(status_code=409, detail=reason)
@@ -107,8 +115,7 @@ class PrivateTrainingService:
     def cancel_slot(self, slot_id: UUID, *, actor: CurrentUser, trace_id: str) -> dict:
         slot = self._slot(slot_id, for_update=True)
         self._authorize_coach_or_admin(slot.coach_profile_id, actor)
-        active, _ = self.repo.list_bookings(coach_id=slot.coach_profile_id, status="pending", limit=1)
-        if slot.status == "locked" or any(item["availability_id"] == slot.id for item in active):
+        if slot.status == "locked" or self.repo.slot_has_active_booking(slot.id):
             raise HTTPException(status_code=409, detail="Slot has active booking")
         slot.status = "cancelled"
         self.repo.update_slot(slot)
@@ -239,9 +246,6 @@ class PrivateTrainingService:
             reason = self._slot_conflict(coach_id, start_at, end_at)
             if reason:
                 raise HTTPException(status_code=409, detail=reason)
-        coach = self.coach_repo.get_by_id(coach_id)
-        if not coach or not coach.enabled:
-            raise HTTPException(status_code=404, detail="Enabled coach not found")
         slot = self.repo.create_slot(PrivateAvailability(
             coach_profile_id=coach_id, start_at=start_at, end_at=end_at,
             duration_minutes=self._duration_minutes(start_at, end_at), status="available",
@@ -272,6 +276,16 @@ class PrivateTrainingService:
         if not slot:
             raise HTTPException(status_code=404, detail="Private slot not found")
         return slot
+
+    def _enabled_coach(self, coach_id: UUID) -> None:
+        coach = self.coach_repo.get_by_id(coach_id)
+        if not coach or not coach.enabled:
+            raise HTTPException(status_code=404, detail="Enabled coach not found")
+
+    @staticmethod
+    def _require_future(start_at: datetime, now: datetime) -> None:
+        if PrivateTrainingService._utc(start_at) <= PrivateTrainingService._utc(now):
+            raise HTTPException(status_code=409, detail="Private slot is in the past")
 
     def _booking_slot(self, booking_id: UUID) -> tuple[PrivateBooking, PrivateAvailability]:
         booking = self.repo.get_booking(booking_id, for_update=True)

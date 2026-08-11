@@ -9,7 +9,7 @@ SECRET_KEY = os.getenv(
     os.getenv("SECRET_KEY", "local-development-secret-change-me-32"),
 )
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRES_MINUTES", "1440"))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRES_MINUTES", "60"))
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

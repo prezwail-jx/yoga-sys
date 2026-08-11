@@ -1,0 +1,10 @@
+<view class="page-shell">
+  <text class="eyebrow">Session</text>
+  <view class="title">账号与会话</view>
+  <view class="panel account-card">
+    <text class="account-card__role">{{roleLabel}}</text>
+    <text class="account-card__name">{{username}}</text>
+    <text class="muted">登录身份和业务权限均由服务器确认。</text>
+    <button class="primary-button" bindtap="logout">退出登录</button>
+  </view>
+</view>

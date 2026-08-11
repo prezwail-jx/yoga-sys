@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import datetime
 from uuid import UUID
 
@@ -46,6 +47,35 @@ def _booking_body(value: dict) -> dict:
     return PrivateBookingResponse.model_validate(value).model_dump(mode="json", by_alias=True)
 
 
+def _slot_mutation(
+    session: Session,
+    *,
+    scope: str,
+    actor_id: str,
+    key: str | None,
+    payload: dict,
+    response_code: int,
+    mutate: Callable[[], dict],
+):
+    if key is None:
+        return mutate()
+    idem, request_hash, replay = _replay(
+        session, scope=scope, actor_id=actor_id, key=key, payload=payload,
+    )
+    if replay.hit:
+        return JSONResponse(status_code=replay.response_code, content=replay.response_body)
+    body = _slot_body(mutate())
+    idem.persist(
+        scope=scope,
+        actor_id=actor_id,
+        idempotency_key=key,
+        request_hash=request_hash,
+        response_code=response_code,
+        response_body=body,
+    )
+    return body
+
+
 @router.get("/private-slots", response_model=PrivateAvailabilityList)
 def list_private_slots(
     date_from: datetime | None = Query(None, alias="dateFrom"),
@@ -61,10 +91,24 @@ def list_private_slots(
 @router.post("/private-slots", response_model=PrivateAvailabilityResponse, status_code=status.HTTP_201_CREATED)
 def create_private_slot(
     payload: PrivateAvailabilityInput, request: Request,
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key", min_length=8, max_length=128),
     service: PrivateTrainingService = Depends(get_private_training_service),
+    session: Session = Depends(get_session),
     user: CurrentUser = Depends(get_current_user),
+    now=Depends(get_business_now),
 ):
-    return service.create_slot(payload, actor=user, trace_id=request.state.trace_id)
+    body_in = payload.model_dump(mode="json", by_alias=True)
+    return _slot_mutation(
+        session,
+        scope="private-slot-create",
+        actor_id=user.user_id,
+        key=idempotency_key,
+        payload=body_in,
+        response_code=201,
+        mutate=lambda: service.create_slot(
+            payload, actor=user, trace_id=request.state.trace_id, now=now,
+        ),
+    )
 
 
 @router.post("/private-slots/generate-week", response_model=PrivateAvailabilityWeekResult)
@@ -73,6 +117,7 @@ def generate_private_week(
     idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=8, max_length=128),
     service: PrivateTrainingService = Depends(get_private_training_service),
     session: Session = Depends(get_session), user: CurrentUser = Depends(get_current_user),
+    now=Depends(get_business_now),
 ):
     idem, request_hash, replay = _replay(
         session, scope="private-slot-generate-week", actor_id=user.user_id,
@@ -80,7 +125,9 @@ def generate_private_week(
     )
     if replay.hit:
         return JSONResponse(status_code=replay.response_code, content=replay.response_body)
-    created, conflicts = service.generate_week(payload, actor=user, trace_id=request.state.trace_id)
+    created, conflicts = service.generate_week(
+        payload, actor=user, trace_id=request.state.trace_id, now=now,
+    )
     body = PrivateAvailabilityWeekResult(created=created, conflicts=conflicts).model_dump(mode="json", by_alias=True)
     idem.persist(scope="private-slot-generate-week", actor_id=user.user_id, idempotency_key=idempotency_key, request_hash=request_hash, response_code=200, response_body=body)
     return body
@@ -89,19 +136,45 @@ def generate_private_week(
 @router.patch("/private-slots/{slotId}", response_model=PrivateAvailabilityResponse)
 def update_private_slot(
     slotId: UUID, payload: PrivateAvailabilityInput, request: Request,
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key", min_length=8, max_length=128),
     service: PrivateTrainingService = Depends(get_private_training_service),
+    session: Session = Depends(get_session),
     user: CurrentUser = Depends(get_current_user),
+    now=Depends(get_business_now),
 ):
-    return service.update_slot(slotId, payload, actor=user, trace_id=request.state.trace_id)
+    body_in = {"slotId": str(slotId), **payload.model_dump(mode="json", by_alias=True)}
+    return _slot_mutation(
+        session,
+        scope="private-slot-update",
+        actor_id=user.user_id,
+        key=idempotency_key,
+        payload=body_in,
+        response_code=200,
+        mutate=lambda: service.update_slot(
+            slotId, payload, actor=user, trace_id=request.state.trace_id, now=now,
+        ),
+    )
 
 
 @router.delete("/private-slots/{slotId}", response_model=PrivateAvailabilityResponse)
 def cancel_private_slot(
     slotId: UUID, request: Request,
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key", min_length=8, max_length=128),
     service: PrivateTrainingService = Depends(get_private_training_service),
+    session: Session = Depends(get_session),
     user: CurrentUser = Depends(get_current_user),
 ):
-    return service.cancel_slot(slotId, actor=user, trace_id=request.state.trace_id)
+    return _slot_mutation(
+        session,
+        scope="private-slot-cancel",
+        actor_id=user.user_id,
+        key=idempotency_key,
+        payload={"slotId": str(slotId)},
+        response_code=200,
+        mutate=lambda: service.cancel_slot(
+            slotId, actor=user, trace_id=request.state.trace_id,
+        ),
+    )
 
 
 @router.get("/private-bookings", response_model=PrivateBookingList)

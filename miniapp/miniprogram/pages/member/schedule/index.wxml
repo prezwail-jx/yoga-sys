@@ -1,0 +1,25 @@
+<view class="page-shell">
+  <text class="eyebrow">Weekly rhythm</text>
+  <view class="title">团课日程</view>
+  <view class="member-toolbar">
+    <button class="member-toolbar__button" bindtap="previousWeek">上一周</button>
+    <text class="muted">{{weekStart}}</text>
+    <button class="member-toolbar__button" bindtap="nextWeek">下一周</button>
+  </view>
+  <view wx:if="{{feedback}}" class="feedback">{{feedback}}</view>
+  <async-state wx:if="{{mode !== 'ready'}}" mode="{{mode}}" message="{{message}}" bindretry="load" />
+  <view wx:else>
+    <view wx:for="{{groups}}" wx:key="dateKey" wx:for-item="group" class="day-group">
+      <text class="day-group__title">{{group.dateLabel}}</text>
+      <view wx:for="{{group.items}}" wx:key="id" wx:for-item="session" class="member-card">
+        <view class="member-card__headline">
+          <text class="member-card__title">{{session.courseName}}</text>
+          <text class="member-card__tag">{{session.actionLabel}}</text>
+        </view>
+        <text class="member-card__meta">{{session.timeLabel}} · {{session.coachName}}</text>
+        <text class="member-card__meta">{{session.roomName}} · 名额 {{session.capacityLabel}}</text>
+        <button wx:if="{{session.canBook}}" class="member-card__action" loading="{{pendingId === session.id}}" disabled="{{pendingId !== ''}}" data-id="{{session.id}}" data-name="{{session.courseName}}" bindtap="book">预约</button>
+      </view>
+    </view>
+  </view>
+</view>

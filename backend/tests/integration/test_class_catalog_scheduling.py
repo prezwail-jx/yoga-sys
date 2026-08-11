@@ -161,7 +161,7 @@ def test_schedule_conflicts_lifecycle_visibility_and_copy(client, auth_headers, 
         "/class-sessions", params={"weekStart": SOURCE_WEEK.isoformat()}, headers=coach_headers
     )
     assert visible.status_code == 200
-    assert [item["id"] for item in visible.json()["items"]] == [first["id"]]
+    assert visible.json()["items"] == []
 
     copy_payload = {
         "sourceWeekStart": SOURCE_WEEK.isoformat(),

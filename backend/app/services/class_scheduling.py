@@ -121,9 +121,20 @@ class ClassSchedulingService:
             raise self._missing("Class session")
         return projected
 
-    def list_week(self, week_start: date, *, include_drafts: bool) -> tuple[list[dict], date]:
+    def list_week(
+        self,
+        week_start: date,
+        *,
+        include_drafts: bool,
+        coach_profile_id: UUID | None = None,
+    ) -> tuple[list[dict], date]:
         start_at, end_at = self._week_bounds(week_start)
-        return self.session_repo.list_week(start_at, end_at, include_drafts=include_drafts), week_start + timedelta(days=6)
+        return self.session_repo.list_week(
+            start_at,
+            end_at,
+            include_drafts=include_drafts,
+            coach_profile_id=coach_profile_id,
+        ), week_start + timedelta(days=6)
 
     def update(self, session_id: UUID, request: UpdateClassSessionRequest) -> dict:
         current = self.session_repo.get_by_id(session_id, for_update=True)

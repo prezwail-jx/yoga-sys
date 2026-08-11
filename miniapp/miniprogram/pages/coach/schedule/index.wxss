@@ -1,0 +1,10 @@
+@import "../../../styles/coach.wxss";
+
+.coach-day {
+  display: block;
+  margin: 34rpx 0 14rpx;
+}
+
+.coach-card .coach-button {
+  margin-top: 20rpx;
+}

@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentUser, get_current_admin
+from app.api.audit import record_audit
+from app.api.deps import CurrentUser, get_current_admin, get_current_user
 from app.api.deps.business_clock import get_business_today
 from app.api.endpoints.transactions import operation_body
 from app.infra.db.session import get_session
@@ -13,7 +14,14 @@ from app.repositories.card_product import CardProductRepository
 from app.repositories.member import MemberRepository
 from app.repositories.member_card_repository import MemberCardRepository
 from app.repositories.transaction_repository import TransactionRepository
-from app.schemas.member_card import FreezeMemberCardRequest, MemberCardListResponse, MemberCardResponse, UnfreezeMemberCardRequest
+from app.schemas.member_card import (
+    FreezeMemberCardRequest,
+    MemberCardListResponse,
+    MemberCardResponse,
+    MemberSelfCardListResponse,
+    MemberSelfCardResponse,
+    UnfreezeMemberCardRequest,
+)
 from app.services.idempotency_service import IdempotencyConflictError, IdempotencyService
 from app.services.member_card_lifecycle_service import MemberCardLifecycleService
 
@@ -22,8 +30,60 @@ router = APIRouter()
 def lifecycle_service(session):
     return MemberCardLifecycleService(session, MemberRepository(session), CardProductRepository(session), MemberCardRepository(session), TransactionRepository(session))
 
+@router.get("/members/me/cards", response_model=MemberSelfCardListResponse)
+def list_my_cards(
+    request: Request,
+    session: Session = Depends(get_session),
+    user: CurrentUser = Depends(get_current_user),
+    today=Depends(get_business_today),
+):
+    if user.role != "member" or not user.member_id:
+        raise HTTPException(status_code=403, detail="Member role required")
+    member_id = UUID(user.member_id)
+    cards = lifecycle_service(session).list_member_cards(member_id, today, request.state.trace_id)
+    items = [MemberSelfCardResponse.model_validate(card) for card in cards]
+    return {"items": items, "total": len(items)}
+
+
+def _assert_admin_or_record_denial(
+    session: Session,
+    user: CurrentUser,
+    target_member_id: UUID,
+    trace_id: str,
+) -> None:
+    if user.role == "admin":
+        return
+    is_cross_member_access = (
+        user.role == "member" and user.member_id != str(target_member_id)
+    )
+    record_audit(
+        session,
+        trace_id=trace_id,
+        action="read_member_cards",
+        user=user,
+        object_type="member_cards",
+        object_id=str(target_member_id),
+        member_id=target_member_id,
+        result="rejected",
+        reason=(
+            "Cross-member card list access denied"
+            if is_cross_member_access
+            else "Administrator card list access denied"
+        ),
+    )
+    session.commit()
+    raise HTTPException(status_code=403, detail="Forbidden")
+
+
 @router.get("/members/{memberId}/cards", response_model=MemberCardListResponse)
-def list_member_cards(memberId: UUID, request: Request, session: Session = Depends(get_session), _: CurrentUser = Depends(get_current_admin), today=Depends(get_business_today)):
+def list_member_cards(
+    memberId: UUID,
+    request: Request,
+    session: Session = Depends(get_session),
+    user: CurrentUser = Depends(get_current_user),
+    today=Depends(get_business_today),
+):
+    _assert_admin_or_record_denial(session, user, memberId, request.state.trace_id)
     cards = lifecycle_service(session).list_member_cards(memberId, today, request.state.trace_id)
     repo = TransactionRepository(session)
     items = [MemberCardResponse.model_validate(card).model_copy(update={"expiring_soon": card.status == "active" and card.remind_on is not None and card.remind_on <= today <= card.expires_on, "refundable_transaction_id": (candidate.id if (candidate := repo.latest_refundable_for_card(card.id)) else None)}) for card in cards]

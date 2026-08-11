@@ -79,7 +79,7 @@ async function unfreeze(payload: { card: MemberCard; reason: string }) {
 
 <template>
   <section class="panel">
-    <div class="section-heading"><div><h2>卡项办理</h2><p class="hint">选择会员后办理购卡、续费、补卡、退款和生命周期操作。</p></div></div>
+    <div class="section-heading"><div><h2>办理卡项业务</h2><p class="hint">选择会员后办理购卡、续费、补卡、退款和生命周期操作。</p></div></div>
     <CommonAsyncState :status="setupStatus" :empty="false" pending-text="正在加载会员和卡项…" :error-message="setupError" @retry="retrySetup">
     <div class="toolbar">
       <select v-model="selectedMemberId">

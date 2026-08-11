@@ -22,3 +22,8 @@ class CurrentUserResponse(ApiModel):
     role: str
     member_id: str | None = None
     coach_profile_id: str | None = None
+
+
+class ChangePasswordRequest(ApiModel):
+    old_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)

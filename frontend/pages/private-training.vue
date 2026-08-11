@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PrivateBooking, PrivateBookingDecisionInput, PrivateSlotInput } from "~/types/domain"
 import { canCancelPendingPrivateBooking, canConfirmPrivateBooking, canRejectPrivateBooking, canSignInPrivateBooking } from "~/utils/privateTraining"
+import { privateTrainingErrorMessage } from "~/utils/privateTrainingErrors"
 
 definePageMeta({ middleware: "require-auth" })
 
@@ -61,7 +62,7 @@ async function createSlot() {
     slotForm.endAt = ""
     await refreshSlots()
   } catch (error: unknown) {
-    errorMessage.value = getApiErrorMessage(error, "创建时段失败")
+    errorMessage.value = privateTrainingErrorMessage(error, "创建时段失败")
   } finally {
     pending.value = false
   }
@@ -76,7 +77,7 @@ async function bookSlot(slotId: string) {
     bookingMessage.value = ""
     await reloadAll()
   } catch (error: unknown) {
-    errorMessage.value = getApiErrorMessage(error, "预约失败")
+    errorMessage.value = privateTrainingErrorMessage(error, "预约失败")
   } finally {
     pending.value = false
   }
@@ -96,7 +97,7 @@ async function bookingAction(action: "confirm" | "reject" | "cancel") {
     decisionReason.value = ""
     await reloadAll()
   } catch (error: unknown) {
-    errorMessage.value = getApiErrorMessage(error, "操作失败")
+    errorMessage.value = privateTrainingErrorMessage(error, "操作失败")
   } finally {
     pending.value = false
   }
@@ -119,7 +120,7 @@ async function signIn() {
     lessonForm.memberStatusNotes = ""
     await refreshBookings()
   } catch (error: unknown) {
-    errorMessage.value = getApiErrorMessage(error, "签到失败")
+    errorMessage.value = privateTrainingErrorMessage(error, "签到失败")
   } finally {
     pending.value = false
   }
@@ -129,7 +130,7 @@ async function signIn() {
 <template>
   <section class="panel">
     <div class="section-heading">
-      <div><h2>私教预约</h2><p class="hint">真实私教时段、预约确认与课时记录</p></div>
+      <div><h2>私教业务</h2><p class="hint">真实私教时段、预约确认与课时记录</p></div>
       <button class="button-secondary" type="button" @click="reloadAll">刷新</button>
     </div>
     <p v-if="errorMessage" class="error-text">{{ errorMessage }}</p>

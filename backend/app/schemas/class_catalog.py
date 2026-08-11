@@ -100,6 +100,9 @@ class CoachResponse(ApiModel):
     enabled: bool
     created_at: datetime
     updated_at: datetime
+    has_account: bool = False
+    username: str | None = None
+    account_id: UUID | None = None
 
 
 class CoachListResponse(ApiModel):

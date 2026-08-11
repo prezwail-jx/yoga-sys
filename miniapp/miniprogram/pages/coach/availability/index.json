@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "私教时间",
+  "usingComponents": {
+    "async-state": "/components/async-state/index"
+  }
+}

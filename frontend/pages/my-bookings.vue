@@ -117,7 +117,7 @@ async function cancelBooking() {
     <div class="section-heading bookings-heading">
       <div>
         <p class="eyebrow">Member bookings</p>
-        <h2>我的预约</h2>
+        <h2>预约记录</h2>
         <p class="hint">共 {{ total }} 条预约记录，身份由当前登录账号确定</p>
       </div>
       <NuxtLink class="schedule-link" to="/schedule">查看团课课表</NuxtLink>

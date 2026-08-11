@@ -76,6 +76,8 @@ Mini Program          FastAPI                 WeChat
 
 An unbound exchange returns a cryptographically random opaque binding ticket whose digest is persisted in `wechat_binding_challenge`. It does not return OpenID or `session_key`. The binding endpoint locks and consumes the challenge, verifies credentials, rejects administrator accounts, reapplies current member/coach status rules, creates the mapping atomically, and issues the standard JWT. A challenge expires after a configurable short interval, permits a small configurable number of failed credential attempts, and cannot be replayed after success.
 
+Credential mismatches must be represented as a service outcome rather than an exception that escapes the request transaction. The endpoint returns the uniform authentication-error response normally after incrementing `failed_attempts`, allowing `get_session()` to commit the counter. Challenge-not-found, consumed, expired, and attempt-limit outcomes do not mutate state and may be mapped separately. Binding locks the challenge row first, then acquires the identity and account advisory transaction locks in a stable sorted order; database unique constraints remain the final concurrency boundary.
+
 Returning users submit a new `wx.login` code; the server resolves the mapping, reloads the account and profile state, and issues a fresh standard JWT. The Mini Program never stores the account password after binding.
 
 A one-step endpoint that accepts WeChat code and password together was considered. The two-step protocol gives a clear bound/unbound response and prevents account credentials from being resent on normal login while still requiring short ticket expiry, one-time consumption, and rate limits.
@@ -126,6 +128,49 @@ Each Mini Program mutation creates an idempotency key before submission, retains
 ### 9. Separate public and private configuration
 
 The AppID may be present in Mini Program project configuration. The AppSecret, identity pepper, and binding-ticket material exist only in backend environment or secret management and are never committed. Backend configuration must distinguish a fake provider used by automated tests, a development AppID used by developers, and production credentials, and must set explicit WeChat API timeouts.
+
+**Credentials and subject (1.6 — decided 2026-08-05):**
+
+| Item | Value / Decision |
+|---|---|
+| Development AppID | `wx9fc61b966bf4e207` |
+| Development subject | Personal (开发版真实登录可用，不可用于商用发布) |
+| Production AppID | `TBD` — to be issued after registering a non-personal subject |
+| Development API base URL | `http://127.0.0.1:8000` (local) |
+| Production API hostname | `https://yoga.tuitukj.com` |
+| Secret storage (local dev) | `backend/.env` (git-ignored) |
+| Secret storage (production) | `/etc/yoga-sys/backend.env`, owned `root:root`, mode `0600` |
+
+The repository may contain this AppID and empty `WECHAT_APP_SECRET` / `WECHAT_IDENTITY_PEPPER` example variables because the AppID is not a secret. Developers load the complete AppSecret and pepper only through the ignored `backend/.env`; production loads them from the system-level env file. Masked AppSecret text is documentation-only and must never be configured as a credential.
+
+**Lifetimes and policy:**
+
+| Parameter | Value |
+|---|---|
+| JWT access-token lifetime | 60 minutes |
+| Binding-challenge lifetime | 10 minutes |
+| Max failed credential attempts per challenge | 5 |
+| WeChat `code2Session` API timeout | 5 seconds |
+| Retry on `wx.login` code failure | No — codes are one-time; retry requires a fresh `wx.login` call |
+
+**Feature flags and safety invariants:**
+
+```env
+WECHAT_AUTH_ENABLED=true           # set to "false" for unit tests
+WECHAT_PROVIDER=fake               # "fake" for tests, "real" for WeChat API
+WECHAT_APP_ID=wx9fc61b966bf4e207
+WECHAT_APP_SECRET=                 # only in ignored .env
+WECHAT_IDENTITY_PEPPER=            # only in ignored .env
+WECHAT_API_TIMEOUT_SECONDS=5
+WECHAT_BINDING_CHALLENGE_MINUTES=10
+WECHAT_BINDING_MAX_ATTEMPTS=5
+JWT_EXPIRES_MINUTES=60
+```
+
+- When `APP_ENV=production`, `WECHAT_PROVIDER=fake` MUST be rejected at startup.
+- When `WECHAT_PROVIDER=real`, any missing secret MUST cause a startup failure.
+- Raw OpenID and `session_key` MUST never be persisted, logged, traced, or returned to the client.
+- The development AppID identity space is isolated from any future production AppID; bindings are not portable across AppIDs.
 
 The committed delivery target for this change is initially a development build. Code development starts with an injected fake code-exchange provider and local/test FastAPI, so lack of production credentials and a public server do not block domain logic or client page construction. Real `code2Session` integration requires a usable development AppID/AppSecret, and real-device legal-domain acceptance requires a public server. Production requires all of the following gates:
 

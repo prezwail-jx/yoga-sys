@@ -1,0 +1,36 @@
+.state {
+  display: flex;
+  min-height: 320rpx;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #64736e;
+  text-align: center;
+}
+
+.state__mark {
+  display: flex;
+  width: 88rpx;
+  height: 88rpx;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid #bb6b3d;
+  border-radius: 50%;
+  color: #bb6b3d;
+  font-family: Georgia, serif;
+  font-size: 42rpx;
+}
+
+.state__message {
+  margin-top: 24rpx;
+  font-size: 28rpx;
+}
+
+.state__retry {
+  margin-top: 28rpx;
+  border: 1rpx solid #173f35;
+  border-radius: 999rpx;
+  background: transparent;
+  color: #173f35;
+  font-size: 26rpx;
+}

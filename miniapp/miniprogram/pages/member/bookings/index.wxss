@@ -1,0 +1,23 @@
+@import "../../../styles/member.wxss";
+
+.booking-tabs {
+  display: flex;
+  margin: 26rpx 0 34rpx;
+  padding: 6rpx;
+  border-radius: 999rpx;
+  background: #e4e8e3;
+}
+
+.booking-tabs__item {
+  flex: 1;
+  margin: 0;
+  border-radius: 999rpx;
+  background: transparent;
+  color: #64736e;
+  font-size: 26rpx;
+}
+
+.booking-tabs__item--active {
+  background: #173f35;
+  color: #fffaf1;
+}

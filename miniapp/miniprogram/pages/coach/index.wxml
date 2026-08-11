@@ -1,0 +1,7 @@
+<view class="page-shell">
+  <text class="eyebrow">Coach</text>
+  <view class="title">{{destination}}</view>
+  <view class="panel">
+    <async-state mode="empty" message="业务页面将在第 9 大项接入" />
+  </view>
+</view>

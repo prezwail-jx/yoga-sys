@@ -1,0 +1,48 @@
+<view class="page-shell">
+  <text class="eyebrow">Availability</text>
+  <view class="title">私教时间</view>
+  <view wx:if="{{feedback}}" class="coach-feedback">{{feedback}}</view>
+  <view class="coach-form">
+    <text class="coach-card__title">{{editingId ? '编辑单个时段' : '新增单个时段'}}</text>
+    <text class="coach-form__label">日期</text>
+    <picker mode="date" value="{{slotDate}}" bindchange="changeDate"><view class="coach-form__field">{{slotDate}}</view></picker>
+    <text class="coach-form__label">开始时间</text>
+    <picker mode="time" value="{{startTime}}" bindchange="changeTime"><view class="coach-form__field">{{startTime}}</view></picker>
+    <text class="coach-form__label">时长</text>
+    <picker range="{{durationOptions}}" value="{{durationIndex}}" bindchange="changeDuration"><view class="coach-form__field">{{durationOptions[durationIndex]}} 分钟</view></picker>
+    <view class="coach-actions">
+      <button class="coach-button" loading="{{pendingId === (editingId || 'create-slot')}}" bindtap="saveSlot">保存</button>
+      <button wx:if="{{editingId}}" class="coach-button coach-button--secondary" bindtap="resetForm">取消编辑</button>
+    </view>
+  </view>
+  <view class="coach-form">
+    <text class="coach-card__title">按周生成</text>
+    <text class="coach-form__label">周一日期</text>
+    <picker mode="date" value="{{weekStart}}" bindchange="changeWeekStart"><view class="coach-form__field">{{weekStart}}</view></picker>
+    <checkbox-group bindchange="changeWeekdays" class="weekday-grid">
+      <label><checkbox value="0" checked />一</label>
+      <label><checkbox value="1" />二</label>
+      <label><checkbox value="2" checked />三</label>
+      <label><checkbox value="3" />四</label>
+      <label><checkbox value="4" checked />五</label>
+      <label><checkbox value="5" />六</label>
+      <label><checkbox value="6" />日</label>
+    </checkbox-group>
+    <button class="coach-button" disabled="{{weekdays.length === 0 || pendingId !== ''}}" bindtap="generateWeek">生成本周时段</button>
+    <text wx:for="{{conflicts}}" wx:key="*this" class="coach-card__meta">冲突：{{item}}</text>
+  </view>
+  <async-state wx:if="{{mode !== 'ready'}}" mode="{{mode}}" message="{{message}}" bindretry="load" />
+  <view wx:else>
+    <view wx:for="{{groups}}" wx:key="dateKey" wx:for-item="group">
+      <text class="eyebrow availability-day">{{group.dateLabel}}</text>
+      <view wx:for="{{group.items}}" wx:key="id" wx:for-item="slot" class="coach-card">
+        <text class="coach-card__title">{{slot.timeLabel}}</text>
+        <text class="coach-card__meta">{{slot.durationMinutes}} 分钟 · {{slot.status}}</text>
+        <view wx:if="{{slot.status === 'available'}}" class="coach-actions">
+          <button class="coach-button coach-button--secondary" data-id="{{slot.id}}" data-start="{{slot.startAt}}" data-duration="{{slot.durationMinutes}}" bindtap="edit">编辑</button>
+          <button class="coach-button" loading="{{pendingId === slot.id}}" data-id="{{slot.id}}" bindtap="cancelSlot">取消</button>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

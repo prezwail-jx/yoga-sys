@@ -1,0 +1,27 @@
+<view class="page-shell">
+  <text class="eyebrow">One to one</text>
+  <view class="title">私教预约</view>
+  <view wx:if="{{pendingBookings.length}}" class="panel">
+    <view class="member-card__headline">
+      <text class="member-card__title">待教练确认</text>
+      <text class="member-card__tag">{{pendingBookings.length}} 项</text>
+    </view>
+    <text class="member-card__meta">已提交的时段不会继续出现在开放列表中。</text>
+    <button class="load-more" bindtap="openBookings">查看和取消申请</button>
+  </view>
+  <view wx:if="{{feedback}}" class="feedback">{{feedback}}</view>
+  <async-state wx:if="{{mode !== 'ready'}}" mode="{{mode}}" message="{{message}}" bindretry="load" />
+  <view wx:else>
+    <view wx:for="{{groups}}" wx:key="dateKey" wx:for-item="group" class="day-group">
+      <text class="day-group__title">{{group.dateLabel}}</text>
+      <view wx:for="{{group.items}}" wx:key="id" wx:for-item="slot" class="member-card">
+        <view class="member-card__headline">
+          <text class="member-card__title">{{slot.coachName}}</text>
+          <text class="member-card__tag">{{slot.durationMinutes}} 分钟</text>
+        </view>
+        <text class="member-card__meta">{{slot.timeLabel}}</text>
+        <button class="member-card__action" loading="{{pendingId === slot.id}}" disabled="{{pendingId !== ''}}" data-id="{{slot.id}}" bindtap="requestSlot">申请时段</button>
+      </view>
+    </view>
+  </view>
+</view>

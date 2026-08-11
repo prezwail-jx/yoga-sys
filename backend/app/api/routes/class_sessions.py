@@ -59,7 +59,12 @@ def list_class_sessions(
     service: ClassSchedulingService = Depends(get_class_scheduling_service),
     user: CurrentUser = Depends(get_current_user),
 ):
-    items, week_end = service.list_week(week_start, include_drafts=user.role == "admin")
+    coach_profile_id = UUID(user.coach_profile_id) if user.role == "coach" and user.coach_profile_id else None
+    items, week_end = service.list_week(
+        week_start,
+        include_drafts=user.role == "admin",
+        coach_profile_id=coach_profile_id,
+    )
     return {"items": items, "week_start": week_start, "week_end": week_end}
 
 

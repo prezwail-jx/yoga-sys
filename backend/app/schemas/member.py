@@ -41,6 +41,9 @@ class MemberResponse(ApiModel):
     deleted_at: datetime | None
     created_at: datetime
     updated_at: datetime
+    has_account: bool = False
+    username: str | None = None
+    account_id: UUID | None = None
 
 
 class MemberListResponse(ApiModel):

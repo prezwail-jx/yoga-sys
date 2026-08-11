@@ -1,0 +1,5 @@
+@import "../../../styles/coach.wxss";
+
+.coach-card > .coach-button {
+  margin-top: 20rpx;
+}

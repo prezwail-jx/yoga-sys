@@ -1,0 +1,6 @@
+<view class="page-shell forbidden">
+  <text class="eyebrow">Access denied</text>
+  <view class="title">当前账号不支持小程序</view>
+  <view class="muted">仅已启用的会员和教练账号可以进入。如账号角色有误，请联系管理员。</view>
+  <button class="primary-button" bindtap="restart">重新登录</button>
+</view>

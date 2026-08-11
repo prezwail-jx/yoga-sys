@@ -82,6 +82,30 @@ class CreateTransactionRequest(ApiModel):
             raise ValueError("extend requires validDaysDelta")
         return self
 
+class MemberSelfCardResponse(ApiModel):
+    """Read-only card view for member self-service (Mini Program).
+
+    MUST NOT expose: member_id, card_product_id, source_member_card_id,
+    refundable_transaction_id, used_times, valid_days, remind_on,
+    freeze_reason, total_frozen_days, expiring_soon, terms_snapshot,
+    created_at, updated_at, or any lifecycle/audit field.
+    """
+    id: UUID
+    product_name: str
+    card_type: str
+    status: CardStatus
+    remaining_times: int | None
+    opened_on: date | None
+    expires_on: date | None
+    frozen_from: date | None
+    frozen_until: date | None
+
+
+class MemberSelfCardListResponse(ApiModel):
+    items: list[MemberSelfCardResponse]
+    total: int
+
+
 class FreezeMemberCardRequest(ApiModel):
     frozen_until: date
     reason: str = Field(min_length=1, max_length=255)

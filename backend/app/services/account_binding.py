@@ -7,7 +7,11 @@ from app.domain.admin_user import AdminUser
 from app.repositories.admin_user import AdminUserRepository
 from app.repositories.class_catalog import CoachProfileRepository
 from app.repositories.member import MemberRepository
-from app.schemas.account_binding import AccountBindingResponse, CreateAccountBindingRequest
+from app.schemas.account_binding import (
+    AccountBindingResponse,
+    CreateAccountBindingRequest,
+    ResetPasswordRequest,
+)
 
 
 class AccountBindingService:
@@ -79,3 +83,19 @@ class AccountBindingService:
             coach_profile_id=coach.id,
         )
         return self._response(self.account_repo.create(account))
+
+    def reset_member_password(self, member_id: UUID, request: ResetPasswordRequest) -> AdminUser:
+        account = self.account_repo.get_by_member_id(member_id)
+        if account is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member account not found")
+        account.password_hash = get_password_hash(request.new_password)
+        return self.account_repo.update(account)
+
+    def reset_coach_password(
+        self, coach_profile_id: UUID, request: ResetPasswordRequest
+    ) -> AdminUser:
+        account = self.account_repo.get_by_coach_profile_id(coach_profile_id)
+        if account is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Coach account not found")
+        account.password_hash = get_password_hash(request.new_password)
+        return self.account_repo.update(account)

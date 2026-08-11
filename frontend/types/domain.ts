@@ -72,6 +72,9 @@ export interface CoachProfile {
   bio: string | null
   specialtyCourseIds: string[] | null
   enabled: boolean
+  hasAccount: boolean
+  username: string | null
+  accountId: string | null
   createdAt: string
   updatedAt: string
 }
@@ -193,6 +196,14 @@ export interface AccountBindingInput {
   initialPassword: string
 }
 
+export interface PasswordResetInput {
+  newPassword: string
+}
+
+export interface ChangePasswordInput extends PasswordResetInput {
+  oldPassword: string
+}
+
 export interface AccountBinding {
   id: string
   username: string
@@ -200,6 +211,12 @@ export interface AccountBinding {
   memberId: string | null
   coachProfileId: string | null
   createdAt: string
+}
+
+export interface WechatBindingStatus {
+  accountId: string
+  bound: boolean
+  boundAt: string | null
 }
 
 export interface Member {
@@ -211,6 +228,9 @@ export interface Member {
   joinDate: string
   emergencyContact: string | null
   status: MemberStatus
+  hasAccount: boolean
+  username: string | null
+  accountId: string | null
   note: string | null
   deletedAt: string | null
   createdAt: string

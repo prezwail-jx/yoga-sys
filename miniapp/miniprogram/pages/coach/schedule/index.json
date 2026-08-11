@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "我的团课",
+  "usingComponents": {
+    "async-state": "/components/async-state/index"
+  }
+}

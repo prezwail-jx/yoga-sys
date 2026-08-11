@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "团课日程",
+  "usingComponents": {
+    "async-state": "/components/async-state/index"
+  }
+}

@@ -24,3 +24,17 @@ class AccountBindingResponse(ApiModel):
     member_id: UUID | None = None
     coach_profile_id: UUID | None = None
     created_at: datetime
+
+
+class ResetPasswordRequest(ApiModel):
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class WechatBindingStatusResponse(ApiModel):
+    account_id: UUID
+    bound: bool
+    bound_at: datetime | None = None
+
+
+class UnbindConfirmationRequest(ApiModel):
+    confirm: Literal[True]

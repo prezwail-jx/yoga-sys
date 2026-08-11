@@ -6,19 +6,25 @@ from sqlalchemy.exc import IntegrityError
 
 from app.domain.member import Member
 from app.repositories.member import MemberRepository
-from app.schemas.member import CreateMemberRequest, UpdateMemberRequest
+from app.repositories.admin_user import AdminUserRepository
+from app.schemas.member import CreateMemberRequest, MemberResponse, UpdateMemberRequest
 
 _ALLOWED_TRANSITIONS = {
     "normal": {"normal", "paused", "disabled"},
     "paused": {"paused", "normal", "disabled"},
-    "disabled": {"disabled"},
+    "disabled": {"disabled", "normal"},
     "expired": {"expired"},
 }
 
 
 class MemberService:
-    def __init__(self, member_repo: MemberRepository):
+    def __init__(
+        self,
+        member_repo: MemberRepository,
+        account_repo: AdminUserRepository | None = None,
+    ):
         self.member_repo = member_repo
+        self.account_repo = account_repo
 
     def create_member(self, req: CreateMemberRequest) -> Member:
         if self.member_repo.get_by_phone(req.phone):
@@ -41,8 +47,30 @@ class MemberService:
         limit: int = 20,
         keyword: str | None = None,
         member_status: str | None = None,
-    ) -> tuple[list[Member], int]:
-        return self.member_repo.list(skip, limit, keyword, member_status)
+    ) -> tuple[list[MemberResponse], int]:
+        members, total = self.member_repo.list(skip, limit, keyword, member_status)
+        accounts = (
+            self.account_repo.get_by_member_ids([member.id for member in members])
+            if self.account_repo
+            else []
+        )
+        accounts_by_member = {account.member_id: account for account in accounts}
+        return [self._response(member, accounts_by_member.get(member.id)) for member in members], total
+
+    def get_member_response(self, member_id: UUID) -> MemberResponse:
+        member = self.get_member(member_id)
+        account = self.account_repo.get_by_member_id(member_id) if self.account_repo else None
+        return self._response(member, account)
+
+    @staticmethod
+    def _response(member: Member, account=None) -> MemberResponse:
+        return MemberResponse.model_validate(member).model_copy(
+            update={
+                "has_account": account is not None,
+                "username": account.username if account is not None else None,
+                "account_id": account.id if account is not None else None,
+            }
+        )
 
     def update_member(self, member_id: UUID, req: UpdateMemberRequest) -> Member:
         member = self.get_member(member_id)

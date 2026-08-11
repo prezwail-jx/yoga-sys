@@ -49,6 +49,10 @@ Thumbs.db
 # Dependency locks are intentionally versioned.
 !backend/uv.lock
 !frontend/package-lock.json
+!miniapp/package-lock.json
+
+# WeChat DevTools local settings
+miniapp/project.private.config.json
 
 # OpenCode runtime/cache/session artifacts
 .opencode/**

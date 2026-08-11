@@ -51,7 +51,7 @@ async function exportCurrent() {
 
 <template>
   <section class="panel">
-    <div class="section-heading"><div><h2>统计报表</h2><p class="hint">真实经营指标、趋势、下钻与 Excel 导出</p></div><button class="button-secondary" type="button" @click="reloadAll">刷新</button></div>
+    <div class="section-heading"><div><h2>经营数据概览</h2><p class="hint">真实经营指标、趋势、下钻与 Excel 导出</p></div><button class="button-secondary" type="button" @click="reloadAll">刷新</button></div>
     <form class="form-grid" @submit.prevent="reloadAll">
       <label>开始日期<input v-model="filters.dateFrom" type="date" /></label>
       <label>结束日期<input v-model="filters.dateTo" type="date" /></label>

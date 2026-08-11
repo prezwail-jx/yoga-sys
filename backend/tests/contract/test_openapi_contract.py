@@ -8,7 +8,7 @@ def test_openapi_exposes_us1_and_us2_real_paths() -> None:
         "/auth/login": {"post"}, "/auth/me": {"get"},
         "/members": {"get", "post"}, "/members/{memberId}": {"get", "patch", "delete"},
         "/card-products": {"get", "post"}, "/card-products/{product_id}": {"get", "patch"},
-        "/members/{memberId}/cards": {"get"}, "/transactions": {"post"},
+        "/members/me/cards": {"get"}, "/members/{memberId}/cards": {"get"}, "/transactions": {"post"},
         "/member-cards/{memberCardId}/freeze": {"post"}, "/member-cards/{memberCardId}/unfreeze": {"post"},
         "/writeoff/events": {"post"}, "/members/{memberId}/timeline": {"get"},
         "/courses": {"get", "post"}, "/courses/{courseId}": {"get", "patch"},

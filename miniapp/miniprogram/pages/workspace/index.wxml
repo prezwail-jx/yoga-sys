@@ -1,0 +1,17 @@
+<view class="page-shell workspace">
+  <view class="workspace__header">
+    <view>
+      <text class="eyebrow">{{roleLabel}}</text>
+      <view class="title">今天，慢一点</view>
+      <view class="muted">{{username}}，选择你现在要处理的事情。</view>
+    </view>
+    <button class="workspace__account" bindtap="account">账号</button>
+  </view>
+  <view class="workspace__grid">
+    <view wx:for="{{items}}" wx:key="id" class="workspace__item" data-path="{{item.path}}" bindtap="open">
+      <text class="workspace__number">0{{index + 1}}</text>
+      <text class="workspace__label">{{item.label}}</text>
+      <text class="workspace__description">{{item.description}}</text>
+    </view>
+  </view>
+</view>

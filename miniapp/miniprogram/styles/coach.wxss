@@ -1,0 +1,105 @@
+.coach-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 28rpx 0;
+}
+
+.coach-button {
+  margin: 0;
+  border-radius: 999rpx;
+  background: #173f35;
+  color: #fffaf1;
+  font-size: 24rpx;
+}
+
+.coach-button--secondary {
+  border: 1rpx solid rgba(23, 63, 53, 0.25);
+  background: transparent;
+  color: #173f35;
+}
+
+.coach-card {
+  margin-bottom: 18rpx;
+  padding: 28rpx;
+  border-left: 8rpx solid #bb6b3d;
+  border-radius: 0 22rpx 22rpx 0;
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.coach-card__title {
+  font-family: Georgia, "Noto Serif CJK SC", serif;
+  font-size: 32rpx;
+}
+
+.coach-card__meta {
+  display: block;
+  margin-top: 10rpx;
+  color: #64736e;
+  font-size: 24rpx;
+}
+
+.coach-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 22rpx;
+}
+
+.coach-actions button {
+  flex: 1;
+}
+
+.coach-tabs {
+  display: flex;
+  overflow-x: auto;
+  margin: 26rpx 0;
+  white-space: nowrap;
+}
+
+.coach-tab {
+  flex: 0 0 auto;
+  margin: 0 12rpx 0 0;
+  padding: 0 26rpx;
+  border-radius: 999rpx;
+  background: #e4e8e3;
+  color: #64736e;
+  font-size: 24rpx;
+}
+
+.coach-tab--active {
+  background: #173f35;
+  color: #fffaf1;
+}
+
+.coach-form {
+  margin-top: 28rpx;
+  padding: 28rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.coach-form__label {
+  display: block;
+  margin: 20rpx 0 10rpx;
+  color: #64736e;
+  font-size: 23rpx;
+}
+
+.coach-form__field {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 20rpx 22rpx;
+  border: 1rpx solid rgba(23, 63, 53, 0.2);
+  border-radius: 16rpx;
+  background: #fff;
+  font-size: 27rpx;
+}
+
+.coach-feedback {
+  margin: 18rpx 0;
+  padding: 18rpx 22rpx;
+  border-radius: 16rpx;
+  background: #f3ded1;
+  color: #883f31;
+  font-size: 24rpx;
+}
