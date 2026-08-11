@@ -38,9 +38,21 @@
 - 新增 compose.prod.yml、Nginx bootstrap/production 配置、env 示例、备份与恢复脚本、部署 README。
 - 提交 `b2f8d8b`（生产部署栈）与 `dd9c832`（前端构建修复）已双平台推送。
 - 应用镜像 `yoga-sys-backend:dd9c832`、`yoga-sys-frontend:dd9c832` 构建并冒烟通过；基础镜像 postgres:16、nginx:alpine、certbot/certbot:v5.7.0 固定 amd64。
-- 离线包：`dist/yoga-sys-release-dd9c832-linux-amd64.tar.gz`（513M）与校验文件已生成并验证。
+- 离线包按日期 tag 重打为 `yoga-sys-release-20260811-linux-amd64.tar.gz`（513M，项目根目录）与校验文件；`dd9c832` 旧包与旧镜像已清理。
+
+## 结果总结（部署执行）
+
+- 服务器 124.220.91.149：`/srv/yoga-sys` 解压部署包，`docker load` 导入 5 个镜像。
+- 写入 `/srv/yoga-sys/env/backend.env`、`env/postgres.env`、`.env`（YOGA_IMAGE_TAG=20260811）。
+- postgres 容器健康；`alembic upgrade head` 至 `0008_wechat_identity`；`seed_users` 创建 admin/coach 后已注释 seed 变量。
+- 系统自带 nginx 占用 80/443，已 `stop`+`disable` 释放；nginx 容器网络异常（未 join internal）已修复。
+- Let's Encrypt 签发 `yoga.tuitukj.com` 证书（邮箱 wagjiaxuan@163.com）；nginx 切至 `production.conf`，`/backend` → FastAPI 路由生效。
 
 ## 后续跟进
 
-- 服务器安装 Docker、`docker load`、写入 `/srv/yoga-sys/env/*.env`、`alembic upgrade head`、一次性 seed、certbot 签发证书。
-- 微信后台添加合法域名 `https://yoga.tuitukj.com`，真机验收后进入提审。
+- 云安全组确认放行入方向 80/443（公网可达性）。
+- 将 admin/coach 弱密码 `12345678` 替换为强密码。
+- 配置备份 cron（每日、保留 30 天）并执行一次恢复演练。
+- `certbot renew --dry-run` 确认自动续期链路。
+- 微信后台添加 request 合法域名 `https://yoga.tuitukj.com`，上传小程序并真机验收（绑定、返回登录、解绑/重绑、token 过期恢复、会员/教练流程）。
+- 生产微信主体（个人→非个人）注册、服务类目与隐私声明，完成后进入提审。
