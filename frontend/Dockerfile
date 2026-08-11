@@ -1,16 +1,16 @@
-FROM node:20-slim AS builder
+FROM node:24-slim AS builder
 
 WORKDIR /app
 
 ENV NUXT_TELEMETRY_DISABLED=1
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm install -g npm@11.6.2 && npm ci
 
 COPY . .
 RUN npm run build
 
-FROM node:20-slim AS runner
+FROM node:24-slim AS runner
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
