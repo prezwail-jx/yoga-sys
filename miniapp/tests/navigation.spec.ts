@@ -28,6 +28,6 @@ describe("role routing", () => {
     const runtime = new FakeRuntime()
     expect(apiBaseUrl(runtime)).toBe("http://127.0.0.1:8000")
     runtime.envVersion = "release"
-    expect(apiBaseUrl(runtime)).toBe("https://yoga.tuitukj.com")
+    expect(apiBaseUrl(runtime)).toBe("https://yoga.tuitukj.com/backend")
   })
 })

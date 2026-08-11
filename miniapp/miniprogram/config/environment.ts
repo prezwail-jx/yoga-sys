@@ -4,8 +4,8 @@ export type EnvironmentVersion = "develop" | "trial" | "release"
 
 const API_BASE_URLS: Record<EnvironmentVersion, string> = {
   develop: "http://127.0.0.1:8000",
-  trial: "https://yoga.tuitukj.com",
-  release: "https://yoga.tuitukj.com",
+  trial: "https://yoga.tuitukj.com/backend",
+  release: "https://yoga.tuitukj.com/backend",
 }
 
 export function environmentVersion(runtime: MiniProgramRuntime): EnvironmentVersion {
