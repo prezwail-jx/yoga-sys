@@ -98,6 +98,7 @@ async function bookingAction(action: "confirm" | "reject" | "cancel") {
     await reloadAll()
   } catch (error: unknown) {
     errorMessage.value = privateTrainingErrorMessage(error, "操作失败")
+    await reloadAll()
   } finally {
     pending.value = false
   }

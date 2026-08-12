@@ -32,7 +32,6 @@ async function submit() {
       <label>密码<input v-model="password" type="password" autocomplete="current-password" required /></label>
       <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
       <button type="submit" :disabled="pending">{{ pending ? "登录中…" : "登录" }}</button>
-      <p class="hint">本地开发：管理员 admin/admin123，教练 coach/coach123。</p>
     </form>
   </main>
 </template>

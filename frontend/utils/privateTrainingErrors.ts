@@ -1,8 +1,14 @@
 type ApiError = {
   statusCode?: number
   status?: number
+  statusMessage?: string
   response?: { status?: number }
-  data?: { detail?: string; traceId?: string }
+  data?: {
+    detail?: string
+    traceId?: string
+    statusMessage?: string
+    data?: { detail?: string; traceId?: string }
+  }
 }
 
 const detailMessages: Record<string, string> = {
@@ -15,20 +21,24 @@ const detailMessages: Record<string, string> = {
   "Member has overlapping class booking": "您在该时间已有团课预约。",
   "Booking is not pending": "该预约已被处理，请刷新后查看最新状态。",
   "Booking is not confirmed": "只有已确认的预约才能签到。",
+  "No eligible member card": "该会员没有可用的私教卡，请检查卡状态、有效期和适用范围。",
+  "Member card has no remaining times": "该会员的私教卡次数已用完。",
+  "Member status does not allow write-off": "该会员当前状态不允许私教卡核销。",
 }
 
 export function privateTrainingErrorMessage(error: unknown, fallback: string): string {
   const value = error as ApiError | null
   const status = value?.statusCode || value?.status || value?.response?.status
-  const detail = value?.data?.detail
+  const detail = value?.data?.detail || value?.data?.data?.detail || value?.data?.statusMessage || value?.statusMessage
+  const traceId = value?.data?.traceId || value?.data?.data?.traceId
   if (detail && detailMessages[detail]) return detailMessages[detail]
   if (status === 401) return "登录状态已失效，请重新登录后继续。"
   if (status === 403) return "当前账号没有权限执行此操作。"
   if (status === 409) return detail || "当前状态发生冲突，请刷新后重试。"
   if (status === 422) return detail || "提交内容不完整或格式不正确，请检查后重试。"
   if (status && status >= 500) {
-    return value?.data?.traceId
-      ? `${fallback}，请联系管理员并提供追踪编号：${value.data.traceId}`
+    return traceId
+      ? `${fallback}，请联系管理员并提供追踪编号：${traceId}`
       : `${fallback}，请稍后重试。`
   }
   return detail || fallback

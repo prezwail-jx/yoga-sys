@@ -280,6 +280,43 @@ def test_course_card_candidates_keep_fefo_order_and_filter_scope():
     assert result == cards[1:3]
 
 
+def test_private_card_candidates_filter_out_group_only_cards():
+    db = MagicMock()
+    cards = [
+        SimpleNamespace(card_type="times", terms_snapshot={"applicableCourseScope": "group"}),
+        SimpleNamespace(card_type="times", terms_snapshot={"applicableCourseScope": "private"}),
+        SimpleNamespace(card_type="private", terms_snapshot={}),
+    ]
+    db.scalars.return_value.all.return_value = cards
+
+    result = MemberCardRepository(db).list_fefo_candidates(
+        uuid4(), NOW.date(), applicable_scope="private", include_pending=True, for_update=True
+    )
+
+    assert result == cards[1:]
+
+
+def test_private_reservation_rejects_member_without_eligible_card():
+    member_repo = MagicMock()
+    card_repo = MagicMock()
+    writeoff_repo = MagicMock()
+    service = WriteOffService(MagicMock(), member_repo, card_repo, writeoff_repo)
+    member_id = uuid4()
+    member_repo.get_by_id.return_value = SimpleNamespace(status="normal")
+    writeoff_repo.get_event.return_value = None
+    card_repo.list_fefo_candidates.return_value = []
+
+    with pytest.raises(HTTPException) as error:
+        service.apply(
+            member_id=member_id, business_ref=str(uuid4()), event_type="reserve_hold",
+            user=_actor("coach"), idempotency_key="private-confirm", trace_id="trace",
+            today=NOW.date(), applicable_scope="private",
+        )
+
+    assert error.value.status_code == 409
+    assert error.value.detail == "No eligible member card"
+
+
 @patch("app.services.writeoff_service.record_audit")
 def test_force_refund_overrides_non_refundable_card_terms(_audit):
     member_repo = MagicMock()
