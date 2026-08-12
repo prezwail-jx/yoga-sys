@@ -38,7 +38,7 @@ def list_my_cards(
     today=Depends(get_business_today),
 ):
     if user.role != "member" or not user.member_id:
-        raise HTTPException(status_code=403, detail="Member role required")
+        raise HTTPException(status_code=403, detail="需要会员身份")
     member_id = UUID(user.member_id)
     cards = lifecycle_service(session).list_member_cards(member_id, today, request.state.trace_id)
     items = [MemberSelfCardResponse.model_validate(card) for card in cards]
@@ -72,7 +72,7 @@ def _assert_admin_or_record_denial(
         ),
     )
     session.commit()
-    raise HTTPException(status_code=403, detail="Forbidden")
+    raise HTTPException(status_code=403, detail="没有权限")
 
 
 @router.get("/members/{memberId}/cards", response_model=MemberCardListResponse)

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ReportDetailCategory, ReportTrendCategory } from "~/types/domain"
 import { formatReportSummaryRows } from "~/utils/reports"
+import { reportClassBookingStatusLabels, reportHeaderLabel, reportTransactionTypeLabels } from "~/utils/labels"
 
 definePageMeta({ middleware: "require-admin" })
 
@@ -29,6 +30,13 @@ const [{ data: coaches }, { data: courses }, { data: cards }] = await Promise.al
 ])
 
 const rows = computed(() => formatReportSummaryRows(summary.value))
+
+function formatCell(key: string, value: unknown): unknown {
+  if (value == null) return value
+  if (key === "type" && typeof value === "string") return reportTransactionTypeLabels[value] || value
+  if (key === "status" && typeof value === "string") return reportClassBookingStatusLabels[value] || value
+  return value
+}
 
 const trendMax = computed(() => Math.max(...(trend.value?.points || []).map(item => Number(item.value) || 0), 1))
 
@@ -75,7 +83,7 @@ async function exportCurrent() {
 
   <section class="panel">
     <div class="section-heading"><div><h3>明细下钻</h3><p class="hint">{{ detail?.total || 0 }} 条</p></div><div class="actions"><select v-model="activeDetail"><option value="transactions">交易</option><option value="refunds">退款</option><option value="expiring_members">即将到期</option><option value="attendance">团课出勤</option><option value="private">私教</option></select><button type="button" :disabled="pendingExport" @click="exportCurrent">{{ pendingExport ? "导出中…" : "导出 Excel" }}</button></div></div>
-    <div class="table-wrap"><table><thead><tr><th v-for="key in Object.keys(detail?.items?.[0] || {})" :key="key">{{ key }}</th></tr></thead><tbody><tr v-for="(item, idx) in detail?.items || []" :key="idx"><td v-for="key in Object.keys(item)" :key="key">{{ item[key] }}</td></tr></tbody></table></div>
+    <div class="table-wrap"><table><thead><tr><th v-for="key in Object.keys(detail?.items?.[0] || {})" :key="key">{{ reportHeaderLabel(key) }}</th></tr></thead><tbody><tr v-for="(item, idx) in detail?.items || []" :key="idx"><td v-for="key in Object.keys(item)" :key="key">{{ formatCell(key, item[key]) }}</td></tr></tbody></table></div>
     <p v-if="!(detail?.items || []).length" class="empty-state">暂无明细</p>
   </section>
 </template>

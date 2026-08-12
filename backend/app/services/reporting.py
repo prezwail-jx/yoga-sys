@@ -25,6 +25,51 @@ from app.domain.private_training import PrivateBooking, PrivateLessonRecord
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 MAX_EXPORT_DAYS = 180
 
+REPORT_HEADER_LABELS = {
+    "bookingId": "预约ID",
+    "cardName": "卡项名称",
+    "coachName": "教练",
+    "completedAt": "完成时间",
+    "consumedHours": "消耗课时",
+    "content": "上课内容",
+    "courseName": "课程",
+    "expiresOn": "到期日期",
+    "lessonId": "课次ID",
+    "memberCardId": "会员卡ID",
+    "memberId": "会员ID",
+    "memberName": "会员",
+    "occurredAt": "发生时间",
+    "reason": "原因",
+    "remainingTimes": "剩余次数",
+    "sessionId": "课次ID",
+    "startAt": "开始时间",
+    "status": "状态",
+    "transactionId": "交易ID",
+    "type": "类型",
+    "amount": "金额",
+}
+
+REPORT_TYPE_LABELS = {
+    "purchase": "购卡",
+    "renew": "续费",
+    "refund": "退款",
+}
+
+REPORT_BOOKING_STATUS_LABELS = {
+    "reserved": "已预约",
+    "checked_in": "已签到",
+    "cancelled": "已取消",
+    "absent": "缺勤",
+}
+
+REPORT_CATEGORY_LABELS = {
+    "expiring_members": "即将到期会员",
+    "transactions": "交易明细",
+    "refunds": "退款明细",
+    "attendance": "团课出勤",
+    "private": "私教明细",
+}
+
 
 class ReportingService:
     def __init__(self, session: Session):
@@ -96,7 +141,7 @@ class ReportingService:
             return [{"bucket": row.bucket, "value": float(row.checked or 0) / float(row.total or 1)} for row in rows]
         if category == "private":
             return self._count_trend(PrivateLessonRecord.completed_at, PrivateLessonRecord.id, PrivateLessonRecord, start, end)
-        raise HTTPException(status_code=422, detail="Unsupported trend category")
+        raise HTTPException(status_code=422, detail="不支持的指标类别")
 
     def details(self, *, category: str, date_from: date | None = None, date_to: date | None = None, coach_id: UUID | None = None, course_id: UUID | None = None, card_product_id: UUID | None = None, skip: int = 0, limit: int = 50) -> tuple[list[dict], int]:
         start, end = self._range(date_from, date_to)
@@ -148,20 +193,35 @@ class ReportingService:
                 "memberName": row[2].name, "coachName": row[3].name, "consumedHours": str(row[0].consumed_hours),
                 "completedAt": row[0].completed_at.isoformat(), "content": row[0].content,
             })
-        raise HTTPException(status_code=422, detail="Unsupported detail category")
+        raise HTTPException(status_code=422, detail="不支持的明细类别")
 
     def export_xlsx(self, *, category: str, date_from: date | None, date_to: date | None, coach_id: UUID | None = None, course_id: UUID | None = None, card_product_id: UUID | None = None) -> bytes:
         if date_from and date_to and (date_to - date_from).days > MAX_EXPORT_DAYS:
-            raise HTTPException(status_code=422, detail="Export date range cannot exceed 180 days")
+            raise HTTPException(status_code=422, detail="导出日期范围不能超过 180 天")
         items, _ = self.details(category=category, date_from=date_from, date_to=date_to, coach_id=coach_id, course_id=course_id, card_product_id=card_product_id, skip=0, limit=10_000)
-        rows = [["Report", category], ["Date From", date_from.isoformat() if date_from else ""], ["Date To", date_to.isoformat() if date_to else ""], []]
+        category_label = REPORT_CATEGORY_LABELS.get(category, category)
+        rows = [["报表", category_label], ["开始日期", date_from.isoformat() if date_from else ""], ["结束日期", date_to.isoformat() if date_to else ""], []]
         if items:
             headers = list(items[0].keys())
-            rows.append(headers)
-            rows.extend([[item.get(header, "") for header in headers] for item in items])
+            header_labels = [REPORT_HEADER_LABELS.get(header, header) for header in headers]
+            rows.append(header_labels)
+            rows.extend([
+                [self._export_cell(header, item.get(header, "")) for header in headers]
+                for item in items
+            ])
         else:
-            rows.append(["No data"])
+            rows.append(["暂无数据"])
         return self._xlsx(rows)
+
+    @staticmethod
+    def _export_cell(header: str, value: object) -> object:
+        if value is None:
+            return value
+        if header == "type" and value in REPORT_TYPE_LABELS:
+            return REPORT_TYPE_LABELS[value]
+        if header == "status" and value in REPORT_BOOKING_STATUS_LABELS:
+            return REPORT_BOOKING_STATUS_LABELS[value]
+        return value
 
     def _money_sum(self, txn_type: str, start: datetime | None, end: datetime | None) -> Decimal:
         return self.session.scalar(select(func.coalesce(func.sum(CardTransaction.amount), 0)).where(CardTransaction.txn_type == txn_type, *self._between(CardTransaction.occurred_at, start, end))) or Decimal("0.00")

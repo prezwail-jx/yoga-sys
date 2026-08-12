@@ -11,21 +11,21 @@ class AccessPolicyService:
             return
         if actor.role == "member" and actor.member_id == str(member_id):
             return
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="没有权限")
 
     def assert_member_writable(self, actor: CurrentUser, member_id: str) -> None:
         if actor.role == "admin":
             return
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="没有权限")
 
     def assert_card_product_writable(self, actor: CurrentUser) -> None:
         if actor.role != "admin":
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden"
+                status_code=status.HTTP_403_FORBIDDEN, detail="没有权限"
             )
 
     def assert_cross_member_query_allowed(self, actor: CurrentUser) -> None:
         if actor.role != "admin":
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden"
+                status_code=status.HTTP_403_FORBIDDEN, detail="没有权限"
             )

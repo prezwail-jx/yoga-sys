@@ -320,4 +320,4 @@ def test_member_cannot_book_unavailable_private_slot():
         )
 
     assert error.value.status_code == 409
-    assert error.value.detail == "Private slot is not available"
+    assert error.value.detail == "私教时段不可预约"

@@ -38,9 +38,9 @@ def test_export_xlsx_contains_filter_metadata_and_detail_rows():
     with ZipFile(__import__("io").BytesIO(content)) as workbook:
         sheet = workbook.read("xl/worksheets/sheet1.xml").decode()
 
-    assert "Report" in sheet
-    assert "transactions" in sheet
+    assert "报表" in sheet
+    assert "交易明细" in sheet
     assert "2030-01-01" in sheet
-    assert "transactionId" in sheet
+    assert "交易ID" in sheet
     assert "txn-1" in sheet
     assert "张三" in sheet

@@ -54,32 +54,32 @@ class ClassBookingService:
             # The lock order is invariant across booking writes: member, then session.
             member = self.booking_repo.lock_member(effective_member_id)
             if member is None:
-                raise HTTPException(status_code=404, detail="Member not found")
+                raise HTTPException(status_code=404, detail="会员不存在")
             class_session = self.session_repo.get_by_id(session_id, for_update=True)
             if class_session is None:
-                raise HTTPException(status_code=404, detail="Class session not found")
+                raise HTTPException(status_code=404, detail="课次不存在")
             if member.status != "normal":
-                raise HTTPException(status_code=409, detail="Member status does not allow booking")
+                raise HTTPException(status_code=409, detail="当前会员状态不允许预约")
             if class_session.status != "published":
-                raise HTTPException(status_code=409, detail="Class session is not published")
+                raise HTTPException(status_code=409, detail="课次未发布")
             if actor.role == "member":
                 opens_at = class_session.start_at - timedelta(hours=class_session.booking_open_hours_before)
                 closes_at = class_session.start_at - timedelta(minutes=class_session.booking_close_minutes_before)
                 if not opens_at <= current_time < closes_at:
-                    raise HTTPException(status_code=409, detail="Class booking window is closed")
+                    raise HTTPException(status_code=409, detail="预约窗口已关闭")
             if self.booking_repo.occupied_count(session_id) >= class_session.capacity:
-                raise HTTPException(status_code=409, detail="Class session is full")
+                raise HTTPException(status_code=409, detail="课次已满员")
             if self.booking_repo.has_active_booking(session_id, effective_member_id):
-                raise HTTPException(status_code=409, detail="Member already has an active booking")
+                raise HTTPException(status_code=409, detail="会员已存在有效预约")
             if self.booking_repo.has_member_overlap(
                 effective_member_id, class_session.start_at, class_session.end_at,
                 exclude_session_id=session_id,
             ):
-                raise HTTPException(status_code=409, detail="Member has an overlapping class booking")
+                raise HTTPException(status_code=409, detail="会员已有重叠的团课预约")
             if self.private_repo and self.private_repo.member_has_private_overlap(
                 effective_member_id, class_session.start_at, class_session.end_at,
             ):
-                raise HTTPException(status_code=409, detail="Member has an overlapping private booking")
+                raise HTTPException(status_code=409, detail="会员已有重叠的私教预约")
             booking = self.booking_repo.create(ClassBooking(
                 class_session_id=session_id,
                 member_id=effective_member_id,
@@ -117,12 +117,12 @@ class ClassBookingService:
             booking, class_session = self._lock_booking_session(booking_id)
             self._authorize_owner_or_admin(booking, actor)
             if booking.status != "reserved":
-                raise HTTPException(status_code=409, detail="Booking is not reserved")
+                raise HTTPException(status_code=409, detail="该预约不是“已预约”状态")
             if class_session.status in {"cancelled", "completed"}:
-                raise HTTPException(status_code=409, detail="Class session is terminal")
+                raise HTTPException(status_code=409, detail="课次已进入终态")
             cutoff = class_session.start_at - timedelta(minutes=class_session.cancel_cutoff_minutes_before)
             if actor.role == "member" and current_time > cutoff:
-                raise HTTPException(status_code=409, detail="Class cancellation cutoff has passed")
+                raise HTTPException(status_code=409, detail="已过取消截止时间")
             self.writeoff_service.apply(
                 member_id=booking.member_id, business_ref=str(booking.id),
                 event_type="cancel_refund", user=actor, idempotency_key=idempotency_key,
@@ -149,13 +149,13 @@ class ClassBookingService:
             if actor.role != "admin" and not (
                 actor.role == "coach" and coach_id and str(class_session.coach_profile_id) == str(coach_id)
             ):
-                raise HTTPException(status_code=403, detail="Only admin or the assigned coach may check in")
+                raise HTTPException(status_code=403, detail="仅管理员或指定教练可签到")
             if booking.status != "reserved":
-                raise HTTPException(status_code=409, detail="Booking is not reserved")
+                raise HTTPException(status_code=409, detail="该预约不是“已预约”状态")
             if class_session.status != "published":
-                raise HTTPException(status_code=409, detail="Class session is not published")
+                raise HTTPException(status_code=409, detail="课次未发布")
             if current_time < class_session.start_at - timedelta(minutes=30):
-                raise HTTPException(status_code=409, detail="Check-in has not opened")
+                raise HTTPException(status_code=409, detail="签到尚未开放")
             self.writeoff_service.apply(
                 member_id=booking.member_id, business_ref=str(booking.id),
                 event_type="checkin_commit", user=actor, idempotency_key=idempotency_key,
@@ -181,10 +181,10 @@ class ClassBookingService:
         with business_span("class_booking.cancel_session", session_id=session_id, actor_role=actor.role):
             class_session = self._session(session_id)
             if class_session.status not in {"draft", "published", "paused"}:
-                raise HTTPException(status_code=409, detail="Class session cannot be cancelled")
+                raise HTTPException(status_code=409, detail="该课次不能取消")
             bookings = self.booking_repo.list_for_session(session_id, for_update=True)
             if any(booking.status == "checked_in" for booking in bookings):
-                raise HTTPException(status_code=409, detail="Checked-in booking prevents session cancellation")
+                raise HTTPException(status_code=409, detail="存在已签到预约，不能取消课次")
             for booking in bookings:
                 if booking.status != "reserved":
                     continue
@@ -222,9 +222,9 @@ class ClassBookingService:
         with business_span("class_booking.complete_session", session_id=session_id, actor_role=actor.role):
             class_session = self._session(session_id)
             if class_session.status not in {"published", "paused"}:
-                raise HTTPException(status_code=409, detail="Class session cannot be completed")
+                raise HTTPException(status_code=409, detail="该课次不能完成")
             if current_time < class_session.end_at:
-                raise HTTPException(status_code=409, detail="Class session has not ended")
+                raise HTTPException(status_code=409, detail="课次尚未结束")
             for booking in self.booking_repo.list_for_session(session_id, for_update=True):
                 if booking.status != "reserved":
                     continue
@@ -247,18 +247,18 @@ class ClassBookingService:
     def get(self, booking_id: UUID) -> dict:
         projected = self.booking_repo.get_projected(booking_id)
         if projected is None:
-            raise HTTPException(status_code=404, detail="Class booking not found")
+            raise HTTPException(status_code=404, detail="预约记录不存在")
         return projected
 
     def list_session(self, session_id: UUID) -> list[dict]:
         if self.session_repo.get_by_id(session_id) is None:
-            raise HTTPException(status_code=404, detail="Class session not found")
+            raise HTTPException(status_code=404, detail="课次不存在")
         return self.booking_repo.list_projected_for_session(session_id)
 
     def assert_session_roster_readable(self, session_id: UUID, actor: CurrentUser) -> None:
         class_session = self.session_repo.get_by_id(session_id)
         if class_session is None:
-            raise HTTPException(status_code=404, detail="Class session not found")
+            raise HTTPException(status_code=404, detail="课次不存在")
         if actor.role == "admin":
             return
         if (
@@ -266,7 +266,7 @@ class ClassBookingService:
             and str(class_session.coach_profile_id) == str(actor.coach_profile_id)
         ):
             return
-        raise HTTPException(status_code=403, detail="Class session roster is forbidden")
+        raise HTTPException(status_code=403, detail="无权查看该课次预约名单")
 
     def list_member(
         self,
@@ -282,13 +282,13 @@ class ClassBookingService:
     def _locked_booking(self, booking_id: UUID) -> ClassBooking:
         booking = self.booking_repo.get_by_id(booking_id, for_update=True)
         if booking is None:
-            raise HTTPException(status_code=404, detail="Class booking not found")
+            raise HTTPException(status_code=404, detail="预约记录不存在")
         return booking
 
     def _lock_booking_session(self, booking_id: UUID):
         existing = self.booking_repo.get_by_id(booking_id)
         if existing is None:
-            raise HTTPException(status_code=404, detail="Class booking not found")
+            raise HTTPException(status_code=404, detail="预约记录不存在")
         class_session = self._session(existing.class_session_id)
         booking = self._locked_booking(booking_id)
         return booking, class_session
@@ -296,33 +296,33 @@ class ClassBookingService:
     def _session(self, session_id: UUID):
         class_session = self.session_repo.get_by_id(session_id, for_update=True)
         if class_session is None:
-            raise HTTPException(status_code=404, detail="Class session not found")
+            raise HTTPException(status_code=404, detail="课次不存在")
         return class_session
 
     @staticmethod
     def _booking_member(actor: CurrentUser, member_id: UUID | None) -> UUID:
         if actor.role == "member":
             if not actor.member_id:
-                raise HTTPException(status_code=403, detail="Member identity is not bound")
+                raise HTTPException(status_code=403, detail="会员身份未绑定")
             bound_member_id = UUID(str(actor.member_id))
             if member_id is not None and member_id != bound_member_id:
-                raise HTTPException(status_code=403, detail="Member cannot book for another member")
+                raise HTTPException(status_code=403, detail="会员不能为其他会员预约")
             return bound_member_id
         if actor.role == "admin" and member_id is not None:
             return member_id
-        raise HTTPException(status_code=403, detail="Admin memberId is required")
+        raise HTTPException(status_code=403, detail="管理员必须指定 memberId")
 
     @staticmethod
     def _authorize_owner_or_admin(booking: ClassBooking, actor: CurrentUser) -> None:
         if actor.role == "admin":
             return
         if actor.role != "member" or not actor.member_id or str(booking.member_id) != str(actor.member_id):
-            raise HTTPException(status_code=403, detail="Booking belongs to another member")
+            raise HTTPException(status_code=403, detail="该预约属于其他会员")
 
     @staticmethod
     def _require_admin(actor: CurrentUser) -> None:
         if actor.role != "admin":
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="需要管理员身份")
 
     def _terminalize(
         self,
@@ -379,7 +379,7 @@ class ClassBookingService:
     def _utc(value: datetime | None) -> datetime:
         current = value or datetime.now(timezone.utc)
         if current.tzinfo is None or current.utcoffset() is None:
-            raise HTTPException(status_code=422, detail="now must include timezone")
+            raise HTTPException(status_code=422, detail="now 必须包含时区")
         return current.astimezone(timezone.utc)
 
     @staticmethod

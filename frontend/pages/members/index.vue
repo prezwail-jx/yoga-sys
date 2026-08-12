@@ -2,6 +2,7 @@
 import type { AccountBindingInput, Member, MemberInput, MemberStatus, PasswordResetInput } from "~/types/domain"
 import { accountOpeningError, isUsernameConflict, memberAccountPresentation, passwordValidationError, wechatBindingPresentation } from "~/utils/accountManagement"
 import { getApiErrorMessage } from "~/utils/errors"
+import { memberStatusLabels } from "~/utils/labels"
 
 definePageMeta({ middleware: "require-admin" })
 
@@ -226,7 +227,7 @@ async function resetPassword() {
           <tr v-for="member in data?.items || []" :key="member.id">
             <td>{{ member.name }}</td>
             <td>{{ member.phone }}</td>
-            <td><span class="status-badge">{{ member.status }}</span></td>
+            <td><span class="status-badge">{{ memberStatusLabels[member.status] }}</span></td>
             <td>
               <div class="account-status">
                 <span :class="['account-badge', member.hasAccount ? 'is-open' : 'is-closed']">{{ memberAccountPresentation(member.hasAccount).label }}</span>

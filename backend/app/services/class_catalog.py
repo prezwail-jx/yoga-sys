@@ -34,20 +34,20 @@ class ClassCatalogService:
 
     @staticmethod
     def _not_found(kind: str) -> HTTPException:
-        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{kind} not found")
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"未找到{kind}")
 
     @staticmethod
     def _normalized_name(name: str) -> str:
         normalized = name.strip()
         if not normalized:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Name must not be blank")
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="名称不能为空")
         return normalized
 
     def _ensure_unique_name(self, repo, name: str, exclude_id: UUID | None = None) -> str:
         normalized = self._normalized_name(name)
         repo.lock_name(normalized)
         if repo.name_exists(normalized, exclude_id=exclude_id):
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Name already exists")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="名称已存在")
         return normalized
 
     def _validate_specialties(self, course_ids: list[UUID] | None) -> list[str] | None:
@@ -58,7 +58,7 @@ class ClassCatalogService:
         if missing:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=f"Specialty course not found: {sorted(str(item) for item in missing)[0]}",
+                detail=f"擅长课程不存在：{sorted(str(item) for item in missing)[0]}",
             )
         return [str(item) for item in dict.fromkeys(course_ids)]
 
@@ -113,7 +113,7 @@ class ClassCatalogService:
             if changes["capacity"] < minimum:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
-                    detail=f"Room capacity cannot be lower than future session capacity {minimum}",
+                    detail=f"教室容量不能低于未来课次容量 {minimum}",
                 )
         for field, value in changes.items():
             setattr(room, field, value)

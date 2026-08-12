@@ -178,7 +178,7 @@ def test_locked_slot_cancellation_preserves_active_booking(client, auth_headers)
         headers=_key(coach_headers, "locked-cancel-6204"),
     )
     assert cancel.status_code == 409
-    assert cancel.json()["detail"] == "Slot has active booking"
+    assert cancel.json()["detail"] == "该时段存在有效预约"
     listed = client.get("/private-slots", headers=coach_headers).json()["items"]
     assert next(item for item in listed if item["id"] == created.json()["id"])["status"] == "locked"
 
@@ -219,7 +219,7 @@ def test_private_slot_schedule_and_enabled_coach_rules(client, auth_headers):
     disabled, _ = _coach(client, auth_headers, "6206", enabled=False)
     disabled_create = _slot(client, auth_headers, _at(12, 13), coach_id=disabled["id"])
     assert disabled_create.status_code == 404
-    assert disabled_create.json()["detail"] == "Enabled coach not found"
+    assert disabled_create.json()["detail"] == "未找到启用的教练"
 
 
 def test_future_time_and_week_generation_replay_with_explicit_conflicts(client, auth_headers):
@@ -228,7 +228,7 @@ def test_future_time_and_week_generation_replay_with_explicit_conflicts(client, 
 
     past_create = _slot(client, coach_headers, _at(8, 9))
     assert past_create.status_code == 409
-    assert past_create.json()["detail"] == "Private slot is in the past"
+    assert past_create.json()["detail"] == "私教时段已开始或已结束"
     future = _slot(client, coach_headers, _at(12, 13))
     assert future.status_code == 201, future.text
     past_update = client.patch(
@@ -237,7 +237,7 @@ def test_future_time_and_week_generation_replay_with_explicit_conflicts(client, 
         headers=coach_headers,
     )
     assert past_update.status_code == 409
-    assert past_update.json()["detail"] == "Private slot is in the past"
+    assert past_update.json()["detail"] == "私教时段已开始或已结束"
 
     existing = _slot(client, coach_headers, _at(11, 9, 30))
     assert existing.status_code == 201, existing.text
@@ -279,4 +279,4 @@ def test_future_time_and_week_generation_replay_with_explicit_conflicts(client, 
         headers=coach_headers,
     )
     assert disabled_update.status_code == 404
-    assert disabled_update.json()["detail"] == "Enabled coach not found"
+    assert disabled_update.json()["detail"] == "未找到启用的教练"

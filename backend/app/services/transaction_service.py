@@ -59,15 +59,15 @@ class TransactionService:
     def _member(self, member_id: UUID):
         member = self.member_repo.get_by_id(member_id)
         if not member:
-            raise HTTPException(status_code=404, detail="Member not found")
+            raise HTTPException(status_code=404, detail="会员不存在")
         if member.status == "disabled":
-            raise HTTPException(status_code=409, detail="Disabled member cannot create card transactions")
+            raise HTTPException(status_code=409, detail="停用会员不能办理卡项业务")
         return member
 
     def _card(self, member_id: UUID, card_id: UUID) -> MemberCard:
         card = self.card_repo.get_by_id(card_id, for_update=True)
         if not card or card.member_id != member_id:
-            raise HTTPException(status_code=404, detail="Member card not found")
+            raise HTTPException(status_code=404, detail="会员卡不存在")
         return card
 
     def _transaction(self, *, txn_type: str, card: MemberCard, user: CurrentUser, key: str, trace_id: str, before: dict | None, amount: Decimal | None = None, times_delta: int | None = None, valid_days_delta: int | None = None, reason: str | None = None, origin_transaction_id: UUID | None = None, source_member_card_id: UUID | None = None) -> CardTransaction:
@@ -87,7 +87,7 @@ class TransactionService:
         member = self._member(request.member_id)
         product = self.product_repo.get_by_id(request.card_product_id)
         if not product or not product.enabled:
-            raise HTTPException(status_code=404, detail="Enabled card product not found")
+            raise HTTPException(status_code=404, detail="未找到启用的卡项产品")
         snapshot = product_snapshot(product)
         immediate = product.activation_mode == "immediate"
         expires_on = today + __import__("datetime").timedelta(days=product.valid_days - 1) if immediate and product.valid_days else None
@@ -109,7 +109,7 @@ class TransactionService:
         member = self._member(request.member_id)
         card = self._card(member.id, request.member_card_id)
         if card.status == "closed":
-            raise HTTPException(status_code=409, detail="Closed card cannot be renewed")
+            raise HTTPException(status_code=409, detail="已关闭的卡不能续费")
         before = card_state(card)
         times = card.terms_snapshot.get("totalTimes")
         days = card.terms_snapshot.get("validDays")
@@ -135,7 +135,7 @@ class TransactionService:
         self._member(request.member_id)
         old = self._card(request.member_id, request.member_card_id)
         if old.status not in {"pending_activation", "active", "frozen"}:
-            raise HTTPException(status_code=409, detail="Card status cannot be reissued")
+            raise HTTPException(status_code=409, detail="当前卡状态不能补卡")
         before = card_state(old)
         new = self.card_repo.create(MemberCard(
             member_id=old.member_id, card_product_id=old.card_product_id, source_member_card_id=old.id,
@@ -155,13 +155,13 @@ class TransactionService:
         card = self._card(request.member_id, request.member_card_id)
         origin = self.transaction_repo.get_by_id(request.origin_transaction_id, for_update=True)
         if not origin or origin.member_card_id != card.id or origin.txn_type not in {"purchase", "renew"}:
-            raise HTTPException(status_code=404, detail="Refundable origin transaction not found")
+            raise HTTPException(status_code=404, detail="可退款的原始交易不存在")
         if self.transaction_repo.has_refund(origin.id) or self.transaction_repo.has_later_transaction(origin):
-            raise HTTPException(status_code=409, detail="Transaction already refunded or card has later changes")
+            raise HTTPException(status_code=409, detail="交易已退款或卡项之后已发生变化")
         if card_state(card) != origin.after_state:
-            raise HTTPException(status_code=409, detail="Card entitlement has already been used or changed")
+            raise HTTPException(status_code=409, detail="卡项权益已被使用或变更")
         if origin.txn_type == "purchase" and card.card_type == "duration" and card.opened_on and card.opened_on < today:
-            raise HTTPException(status_code=409, detail="Activated duration card has already been used")
+            raise HTTPException(status_code=409, detail="已激活的期限卡已被使用")
         before = card_state(card)
         if origin.txn_type == "purchase":
             card.status = "closed"

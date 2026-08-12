@@ -43,7 +43,7 @@ def get_wechat_binding_status(
     try:
         return service.get_status(accountId)
     except ManagedAccountNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found") from exc
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="账号不存在") from exc
 
 
 @router.delete("/accounts/{accountId}/wechat-binding", status_code=status.HTTP_204_NO_CONTENT)
@@ -57,7 +57,7 @@ def unbind_wechat(
     try:
         service.unbind(accountId, actor=user, trace_id=request.state.trace_id)
     except ManagedAccountNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found") from exc
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="账号不存在") from exc
     except WechatBindingNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="wechat_binding_not_found") from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)

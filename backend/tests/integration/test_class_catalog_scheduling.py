@@ -101,7 +101,7 @@ def test_specific_course_card_validates_course_ids_on_create_and_update(client, 
         headers=auth_headers,
     )
     assert missing.status_code == 422
-    assert missing.json()["detail"] == f"Specific course not found: {missing_id}"
+    assert missing.json()["detail"] == f"指定课程不存在：{missing_id}"
 
     group = client.post(
         "/card-products",
@@ -234,7 +234,7 @@ def test_session_rejects_disabled_resources_room_overcapacity_and_terminal_updat
 
     overcapacity = _session(client, auth_headers, course, room, coach, start, capacity=6)
     assert overcapacity.status_code == 409
-    assert overcapacity.json()["detail"] == "Session capacity exceeds room capacity"
+    assert overcapacity.json()["detail"] == "课次容量超过教室容量"
 
     created = _session(client, auth_headers, course, room, coach, start, capacity=5)
     assert created.status_code == 201, created.text
@@ -257,4 +257,4 @@ def test_session_rejects_disabled_resources_room_overcapacity_and_terminal_updat
         client, auth_headers, course, room, coach, start + timedelta(hours=2), capacity=5
     )
     assert disabled_resource.status_code == 409
-    assert disabled_resource.json()["detail"] == "Course is disabled"
+    assert disabled_resource.json()["detail"] == "Course 已停用"

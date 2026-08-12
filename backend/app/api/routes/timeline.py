@@ -31,10 +31,10 @@ def get_member_timeline(
     user: CurrentUser = Depends(get_current_user),
 ):
     if date_from and date_to and date_from > date_to:
-        raise HTTPException(status_code=422, detail="dateFrom must be on or before dateTo")
+        raise HTTPException(status_code=422, detail="dateFrom 必须不晚于 dateTo")
     member = MemberRepository(session).get_by_id(memberId)
     if not member:
-        raise HTTPException(status_code=404, detail="Member not found")
+        raise HTTPException(status_code=404, detail="会员不存在")
     try:
         AccessPolicyService().assert_member_readable(user, str(memberId))
     except HTTPException:

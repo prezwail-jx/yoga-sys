@@ -41,17 +41,17 @@ class WriteOffService:
         existing = self.writeoff_repo.get_event(business_ref, event_type)
         if existing:
             if existing.member_id != member_id:
-                raise HTTPException(status_code=409, detail="Business reference belongs to another member")
+                raise HTTPException(status_code=409, detail="业务单属于其他会员")
             return existing
         member = self.member_repo.get_by_id(member_id)
         if not member:
-            raise HTTPException(status_code=404, detail="Member not found")
+            raise HTTPException(status_code=404, detail="会员不存在")
         if event_type == "reserve_hold" and member.status != "normal":
-            raise HTTPException(status_code=409, detail="Member status does not allow write-off")
+            raise HTTPException(status_code=409, detail="当前会员状态不允许核销")
         if event_type == "reserve_hold":
             return self._reserve(member_id, business_ref, user, idempotency_key, trace_id, today, course_id, applicable_scope)
         if event_type not in TERMINAL_EVENT_TYPES:
-            raise HTTPException(status_code=422, detail="Unsupported write-off event")
+            raise HTTPException(status_code=422, detail="不支持的核销事件")
         return self._terminal(
             member_id, business_ref, event_type, user, idempotency_key, trace_id,
             force_refund=force_refund,
@@ -68,7 +68,7 @@ class WriteOffService:
             or (card.terms_snapshot or {}).get("activationMode") == "first_booking"
         ]
         if not cards:
-            raise HTTPException(status_code=409, detail="No eligible member card")
+            raise HTTPException(status_code=409, detail="没有符合条件的会员卡")
         card = cards[0]
         before = card_state(card)
         if card.status == "pending_activation":
@@ -80,7 +80,7 @@ class WriteOffService:
         times_delta = 0
         if card.remaining_times is not None:
             if card.remaining_times <= 0:
-                raise HTTPException(status_code=409, detail="Member card has no remaining times")
+                raise HTTPException(status_code=409, detail="会员卡没有剩余次数")
             card.remaining_times -= 1
             times_delta = -1
         self.card_repo.update(card)
@@ -99,13 +99,13 @@ class WriteOffService:
     def _terminal(self, member_id, business_ref, event_type, user, key, trace_id, *, force_refund=False):
         reserve = self.writeoff_repo.get_reserve(business_ref, for_update=True)
         if not reserve or reserve.member_id != member_id:
-            raise HTTPException(status_code=409, detail="reserve_hold must exist before terminal event")
+            raise HTTPException(status_code=409, detail="终态事件前必须存在预约预扣事件")
         terminal = self.writeoff_repo.get_terminal(business_ref)
         if terminal:
-            raise HTTPException(status_code=409, detail="Write-off chain already has a terminal event")
+            raise HTTPException(status_code=409, detail="核销链路已存在终态事件")
         card = self.card_repo.get_by_id(reserve.member_card_id, for_update=True)
         if not card:
-            raise HTTPException(status_code=404, detail="Member card not found")
+            raise HTTPException(status_code=404, detail="会员卡不存在")
         before = card_state(card)
         terms = card.terms_snapshot or {}
         times_delta = 0

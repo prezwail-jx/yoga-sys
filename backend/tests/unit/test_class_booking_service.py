@@ -108,7 +108,7 @@ def test_member_booking_window_is_half_open_and_admin_bypasses_it():
     booking_repo.lock_member.return_value = SimpleNamespace(status="normal")
     session_repo.get_by_id.return_value = class_session
 
-    with pytest.raises(HTTPException, match="window"):
+    with pytest.raises(HTTPException, match="预约窗口"):
         service.create(
             session_id=class_session.id,
             actor=_actor("member", member_id=member_id),
@@ -118,7 +118,7 @@ def test_member_booking_window_is_half_open_and_admin_bypasses_it():
         )
 
     booking_repo.occupied_count.return_value = class_session.capacity
-    with pytest.raises(HTTPException, match="full"):
+    with pytest.raises(HTTPException, match="满员"):
         service.create(
             session_id=class_session.id,
             member_id=member_id,
@@ -143,7 +143,7 @@ def test_member_cancel_cutoff_and_admin_override(_audit):
     booking_repo.get_projected.return_value = {"id": booking.id, "status": "cancelled"}
     session_repo.get_by_id.return_value = class_session
 
-    with pytest.raises(HTTPException, match="cutoff"):
+    with pytest.raises(HTTPException, match="取消截止"):
         service.cancel(
             booking.id, actor=_actor("member", member_id=member_id),
             idempotency_key="late-member-cancel", trace_id="trace",
@@ -180,7 +180,7 @@ def test_assigned_coach_checkin_rejects_wrong_coach_and_terminal_booking(_audit)
     booking_repo.get_projected.return_value = {"id": booking.id, "status": "checked_in"}
     session_repo.get_by_id.return_value = class_session
 
-    with pytest.raises(HTTPException, match="assigned coach"):
+    with pytest.raises(HTTPException, match="指定教练"):
         service.check_in(
             booking.id, actor=_actor("coach", coach_profile_id=uuid4()),
             idempotency_key="wrong-coach", trace_id="trace", now=NOW + timedelta(minutes=30),
@@ -195,7 +195,7 @@ def test_assigned_coach_checkin_rejects_wrong_coach_and_terminal_booking(_audit)
     assert booking.status == "checked_in"
     writeoff.apply.assert_called_once()
 
-    with pytest.raises(HTTPException, match="not reserved"):
+    with pytest.raises(HTTPException, match="已预约"):
         service.check_in(
             booking.id, actor=actor, idempotency_key="second-checkin",
             trace_id="trace", now=NOW + timedelta(minutes=31),
@@ -212,7 +212,7 @@ def test_venue_cancel_refuses_checked_in_before_force_refunds(_audit):
         ClassBooking(id=uuid4(), member_id=uuid4(), class_session_id=class_session.id, status="checked_in"),
     ]
 
-    with pytest.raises(HTTPException, match="Checked-in"):
+    with pytest.raises(HTTPException, match="已签到"):
         service.cancel_session(
             class_session.id,
             actor=_actor("admin"),
@@ -314,7 +314,7 @@ def test_private_reservation_rejects_member_without_eligible_card():
         )
 
     assert error.value.status_code == 409
-    assert error.value.detail == "No eligible member card"
+    assert error.value.detail == "没有符合条件的会员卡"
 
 
 @patch("app.services.writeoff_service.record_audit")

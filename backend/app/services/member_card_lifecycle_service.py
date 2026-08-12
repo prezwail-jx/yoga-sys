@@ -24,12 +24,12 @@ class MemberCardLifecycleService:
     def _card(self, card_id: UUID, *, member_id: UUID | None = None) -> MemberCard:
         card = self.card_repo.get_by_id(card_id, for_update=True)
         if not card or (member_id is not None and card.member_id != member_id):
-            raise HTTPException(status_code=404, detail="Member card not found")
+            raise HTTPException(status_code=404, detail="会员卡不存在")
         return card
 
     def _unfreeze(self, card: MemberCard, *, today: date, user: CurrentUser, key: str, trace_id: str, reason: str | None):
         if card.status != "frozen" or card.frozen_from is None:
-            raise HTTPException(status_code=409, detail="Only frozen card can be unfrozen")
+            raise HTTPException(status_code=409, detail="仅冻结中的卡可解冻")
         before = card_state(card)
         frozen_days = max(1, (today - card.frozen_from).days)
         if card.expires_on:
@@ -54,16 +54,16 @@ class MemberCardLifecycleService:
 
     def list_member_cards(self, member_id: UUID, today: date, trace_id: str) -> list[MemberCard]:
         if not self.member_repo.get_by_id(member_id):
-            raise HTTPException(status_code=404, detail="Member not found")
+            raise HTTPException(status_code=404, detail="会员不存在")
         cards = self.card_repo.list_by_member(member_id)
         return [self.reconcile_card(card, today, trace_id) for card in cards]
 
     def freeze(self, card_id: UUID, frozen_until: date, reason: str, today: date, user: CurrentUser, key: str, trace_id: str):
         card = self.reconcile_card(self._card(card_id), today, trace_id)
         if card.status != "active":
-            raise HTTPException(status_code=409, detail="Only active card can be frozen")
+            raise HTTPException(status_code=409, detail="仅使用中的卡可冻结")
         if frozen_until <= today:
-            raise HTTPException(status_code=422, detail="frozenUntil must be after today")
+            raise HTTPException(status_code=422, detail="frozenUntil 必须晚于今天")
         before = card_state(card)
         card.status, card.frozen_from, card.frozen_until = "frozen", today, frozen_until
         card.freeze_reason = reason
@@ -78,7 +78,7 @@ class MemberCardLifecycleService:
         self.transactions._member(request.member_id)
         card = self.reconcile_card(self._card(request.member_card_id, member_id=request.member_id), today, trace_id)
         if card.status not in {"pending_activation", "active", "frozen"}:
-            raise HTTPException(status_code=409, detail="Card status cannot be extended")
+            raise HTTPException(status_code=409, detail="当前卡状态不能延期")
         before, days = card_state(card), int(request.valid_days_delta)
         card.valid_days = (card.valid_days or 0) + days
         if card.expires_on:

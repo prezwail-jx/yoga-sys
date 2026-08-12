@@ -29,7 +29,7 @@ class AccountBindingService:
         normalized = username.strip().lower()
         self.account_repo.lock_username(normalized)
         if self.account_repo.get_by_username(normalized) is not None:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already exists")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="用户名已存在")
         return normalized
 
     @staticmethod
@@ -44,13 +44,13 @@ class AccountBindingService:
         username = self._prepare_username(request.username)
         member = self.member_repo.get_by_id(member_id, for_update=True)
         if member is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="会员不存在")
         if member.status == "disabled":
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Disabled member cannot have an account")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="停用会员不能开通账号")
         if self.account_repo.get_by_member_id(member_id) is not None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Member already has an account",
+                detail="该会员已开通账号",
             )
         account = AdminUser(
             username=username,
@@ -68,13 +68,13 @@ class AccountBindingService:
         username = self._prepare_username(request.username)
         coach = self.coach_repo.get_by_id(coach_profile_id, for_update=True)
         if coach is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Coach not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="教练不存在")
         if not coach.enabled:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Coach is disabled")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="教练已停用")
         if self.account_repo.get_by_coach_profile_id(coach_profile_id) is not None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Coach already has an account",
+                detail="该教练已开通账号",
             )
         account = AdminUser(
             username=username,
@@ -87,7 +87,7 @@ class AccountBindingService:
     def reset_member_password(self, member_id: UUID, request: ResetPasswordRequest) -> AdminUser:
         account = self.account_repo.get_by_member_id(member_id)
         if account is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member account not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="会员账号不存在")
         account.password_hash = get_password_hash(request.new_password)
         return self.account_repo.update(account)
 
@@ -96,6 +96,6 @@ class AccountBindingService:
     ) -> AdminUser:
         account = self.account_repo.get_by_coach_profile_id(coach_profile_id)
         if account is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Coach account not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="教练账号不存在")
         account.password_hash = get_password_hash(request.new_password)
         return self.account_repo.update(account)

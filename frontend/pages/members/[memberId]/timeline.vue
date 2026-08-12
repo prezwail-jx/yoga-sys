@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { TimelineCategory, TimelineEvent } from "~/types/domain"
 import { timelineActionLabels } from "~/utils/timeline"
+import { label, cardTypeLabels, timelineResultLabels, timelineSourceLabels, userRoleLabels } from "~/utils/labels"
 
 definePageMeta({ middleware: "require-timeline-access" })
 const route = useRoute()
@@ -46,7 +47,7 @@ function openChain(event: TimelineEvent) {
       </select>
       <select v-model="action">
         <option value="">全部动作</option>
-        <option v-for="(label, value) in timelineActionLabels" :key="value" :value="value">{{ label }}</option>
+        <option v-for="(actionLabel, value) in timelineActionLabels" :key="value" :value="value">{{ actionLabel }}</option>
       </select>
       <input v-model="dateFrom" type="date" aria-label="开始日期" />
       <input v-model="dateTo" type="date" aria-label="结束日期" />
@@ -57,15 +58,15 @@ function openChain(event: TimelineEvent) {
       <article v-for="event in data?.items || []" :key="`${event.source}:${event.id}`" class="timeline-card">
         <div>
           <strong>{{ timelineActionLabels[event.action] || event.summary }}</strong>
-          <span class="status-badge">{{ event.result }}</span>
+          <span class="status-badge">{{ label(timelineResultLabels, event.result) }}</span>
         </div>
-        <p>{{ new Date(event.occurredAt).toLocaleString("zh-CN") }} · {{ event.source }}</p>
-        <p v-if="event.productName"><strong>{{ event.productName }}</strong><span v-if="event.cardType"> · {{ event.cardType }}</span></p>
+        <p>{{ new Date(event.occurredAt).toLocaleString("zh-CN") }} · {{ label(timelineSourceLabels, event.source) }}</p>
+        <p v-if="event.productName"><strong>{{ event.productName }}</strong><span v-if="event.cardType"> · {{ label(cardTypeLabels, event.cardType) }}</span></p>
         <p v-if="event.amount !== null">金额：¥{{ event.amount }}</p>
         <p v-if="event.timesDelta !== null">次数变化：{{ event.timesDelta > 0 ? "+" : "" }}{{ event.timesDelta }}</p>
         <p v-if="event.validDaysDelta !== null">有效期变化：{{ event.validDaysDelta > 0 ? "+" : "" }}{{ event.validDaysDelta }} 天</p>
         <p v-if="event.reason">备注：{{ event.reason }}</p>
-        <p v-if="event.operatorRole">操作人：{{ event.operatorId }}（{{ event.operatorRole }}）</p>
+        <p v-if="event.operatorRole">操作人：{{ event.operatorId }}（{{ label(userRoleLabels, event.operatorRole) }}）</p>
         <button v-if="event.businessRef" class="button-secondary" type="button" @click="openChain(event)">查看核销链路</button>
       </article>
     </div>

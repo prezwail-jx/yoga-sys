@@ -36,7 +36,7 @@ class AuthService:
     def _unauthorized() -> HTTPException:
         return HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="用户名或密码错误",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -81,7 +81,7 @@ class AuthService:
     def change_member_password(self, username: str, request: ChangePasswordRequest):
         user = self.admin_user_repo.get_by_username(username)
         if user is None or user.role != "member":
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="没有权限")
         if not verify_password(request.old_password, user.password_hash):
             raise self._unauthorized()
         user.password_hash = get_password_hash(request.new_password)

@@ -12,8 +12,8 @@ describe("privateTrainingErrorMessage", () => {
     const error = {
       statusCode: 409,
       data: {
-        statusMessage: "No eligible member card",
-        data: { detail: "No eligible member card" },
+        statusMessage: "没有符合条件的会员卡",
+        data: { detail: "没有符合条件的会员卡" },
       },
     }
 
@@ -22,9 +22,9 @@ describe("privateTrainingErrorMessage", () => {
   })
 
   it("maps private-card eligibility failures", () => {
-    expect(privateTrainingErrorMessage({ statusCode: 409, data: { detail: "Member card has no remaining times" } }, "失败"))
+    expect(privateTrainingErrorMessage({ statusCode: 409, data: { detail: "会员卡没有剩余次数" } }, "失败"))
       .toBe("该会员的私教卡次数已用完。")
-    expect(privateTrainingErrorMessage({ statusCode: 409, data: { detail: "Member status does not allow write-off" } }, "失败"))
+    expect(privateTrainingErrorMessage({ statusCode: 409, data: { detail: "当前会员状态不允许核销" } }, "失败"))
       .toBe("该会员当前状态不允许私教卡核销。")
   })
 

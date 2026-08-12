@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { NavigationGroup } from "~/utils/navigation"
 import { isNavigationItemActive } from "~/utils/navigation"
+import { label, userRoleLabels } from "~/utils/labels"
 
 defineProps<{
   groups: NavigationGroup[]
@@ -37,14 +38,14 @@ const emit = defineEmits<{ close: []; logout: [] }>()
         >
           <UIcon :name="item.icon" class="menu-icon" />
           <span>{{ item.label }}</span>
-          <small v-if="item.mock" class="mock-badge">Mock</small>
+          <small v-if="item.mock" class="mock-badge">模拟</small>
         </NuxtLink>
       </section>
     </nav>
 
     <div v-if="username" class="sidebar-account">
       <div class="account-avatar">{{ username.slice(0, 1).toUpperCase() }}</div>
-      <div class="account-copy"><strong>{{ username }}</strong><span>{{ role }}</span></div>
+      <div class="account-copy"><strong>{{ username }}</strong><span>{{ label(userRoleLabels, role) || role }}</span></div>
       <button class="sidebar-logout" type="button" aria-label="退出登录" @click="emit('logout')"><UIcon name="i-lucide-log-out" /></button>
     </div>
   </aside>

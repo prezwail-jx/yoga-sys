@@ -79,7 +79,7 @@ class PrivateTrainingService:
         conflicts: list[dict] = []
         for weekday in sorted(set(payload.weekdays)):
             if weekday < 0 or weekday > 6:
-                raise HTTPException(status_code=422, detail="weekday must be 0-6")
+                raise HTTPException(status_code=422, detail="weekday 必须在 0-6 之间")
             local_start = datetime.combine(week_start + timedelta(days=weekday), time(hour, minute), SHANGHAI)
             start_at = local_start.astimezone(timezone.utc)
             end_at = start_at + timedelta(minutes=payload.duration_minutes)
@@ -97,7 +97,7 @@ class PrivateTrainingService:
         slot = self._slot(slot_id, for_update=True)
         self._authorize_coach_or_admin(slot.coach_profile_id, actor)
         if slot.status != "available":
-            raise HTTPException(status_code=409, detail="Only available slot can be updated")
+            raise HTTPException(status_code=409, detail="仅可预约的时段可修改")
         coach_id = self._coach_scope(actor, payload.coach_profile_id or slot.coach_profile_id)
         self._enabled_coach(coach_id)
         self._require_future(payload.start_at, now)
@@ -116,7 +116,7 @@ class PrivateTrainingService:
         slot = self._slot(slot_id, for_update=True)
         self._authorize_coach_or_admin(slot.coach_profile_id, actor)
         if slot.status == "locked" or self.repo.slot_has_active_booking(slot.id):
-            raise HTTPException(status_code=409, detail="Slot has active booking")
+            raise HTTPException(status_code=409, detail="该时段存在有效预约")
         slot.status = "cancelled"
         self.repo.update_slot(slot)
         self._audit("private_slot_cancel", actor, "private_availability", slot.id, trace_id=trace_id, after=self._slot_body(slot.id))
@@ -131,23 +131,23 @@ class PrivateTrainingService:
         now: datetime,
     ) -> dict:
         if actor.role != "member" or not actor.member_id:
-            raise HTTPException(status_code=403, detail="Member role required")
+            raise HTTPException(status_code=403, detail="需要会员身份")
         member_id = UUID(actor.member_id)
         with business_span("private_training.booking_create", member_id=member_id, actor_role=actor.role):
             member = self.member_repo.get_by_id(member_id)
             if not member:
-                raise HTTPException(status_code=404, detail="Member not found")
+                raise HTTPException(status_code=404, detail="会员不存在")
             if member.status != "normal":
-                raise HTTPException(status_code=409, detail="Member status does not allow booking")
+                raise HTTPException(status_code=409, detail="当前会员状态不允许预约")
             slot = self._slot(payload.availability_id, for_update=True)
             if slot.status != "available":
-                raise HTTPException(status_code=409, detail="Private slot is not available")
+                raise HTTPException(status_code=409, detail="私教时段不可预约")
             if slot.start_at <= self._utc(now):
-                raise HTTPException(status_code=409, detail="Private slot is in the past")
+                raise HTTPException(status_code=409, detail="私教时段已开始或已结束")
             if self.repo.member_has_private_overlap(member_id, slot.start_at, slot.end_at):
-                raise HTTPException(status_code=409, detail="Member has overlapping private booking")
+                raise HTTPException(status_code=409, detail="会员已有重叠的私教预约")
             if self.repo.member_has_class_overlap(member_id, slot.start_at, slot.end_at):
-                raise HTTPException(status_code=409, detail="Member has overlapping class booking")
+                raise HTTPException(status_code=409, detail="会员已有重叠的团课预约")
             booking = self.repo.create_booking(PrivateBooking(
                 availability_id=slot.id, member_id=member_id, coach_profile_id=slot.coach_profile_id,
                 status="pending", member_message=payload.member_message,
@@ -162,7 +162,7 @@ class PrivateTrainingService:
         booking, slot = self._booking_slot(booking_id)
         self._authorize_coach_or_admin(booking.coach_profile_id, actor)
         if booking.status != "pending":
-            raise HTTPException(status_code=409, detail="Booking is not pending")
+            raise HTTPException(status_code=409, detail="该预约不是“待确认”状态")
         event = self.writeoff_service.apply(
             member_id=booking.member_id, business_ref=str(booking.id), event_type="reserve_hold",
             user=actor, idempotency_key=idempotency_key, trace_id=trace_id, today=today,
@@ -181,7 +181,7 @@ class PrivateTrainingService:
         booking, slot = self._booking_slot(booking_id)
         self._authorize_coach_or_admin(booking.coach_profile_id, actor)
         if booking.status != "pending":
-            raise HTTPException(status_code=409, detail="Booking is not pending")
+            raise HTTPException(status_code=409, detail="该预约不是“待确认”状态")
         booking.status = "rejected"
         booking.rejection_reason = reason
         self._terminalize(booking, actor, now)
@@ -195,11 +195,11 @@ class PrivateTrainingService:
         booking, slot = self._booking_slot(booking_id)
         if actor.role == "member":
             if not actor.member_id or str(booking.member_id) != actor.member_id:
-                raise HTTPException(status_code=403, detail="Cannot cancel another member booking")
+                raise HTTPException(status_code=403, detail="不能取消其他会员的预约")
         elif actor.role != "admin":
-            raise HTTPException(status_code=403, detail="Only member or admin may cancel pending private booking")
+            raise HTTPException(status_code=403, detail="仅会员或管理员可取消待确认的私教预约")
         if booking.status != "pending":
-            raise HTTPException(status_code=409, detail="Only pending private booking can be cancelled")
+            raise HTTPException(status_code=409, detail="仅待确认的私教预约可取消")
         booking.status = "cancelled"
         booking.cancellation_reason = reason
         self._terminalize(booking, actor, now)
@@ -213,7 +213,7 @@ class PrivateTrainingService:
         booking, _ = self._booking_slot(booking_id)
         self._authorize_coach_or_admin(booking.coach_profile_id, actor)
         if booking.status != "confirmed":
-            raise HTTPException(status_code=409, detail="Booking is not confirmed")
+            raise HTTPException(status_code=409, detail="该预约尚未确认")
         self.writeoff_service.apply(
             member_id=booking.member_id, business_ref=str(booking.id), event_type="checkin_commit",
             user=actor, idempotency_key=idempotency_key, trace_id=trace_id, today=today,
@@ -234,11 +234,11 @@ class PrivateTrainingService:
     def get_booking(self, booking_id: UUID, *, actor: CurrentUser) -> dict:
         value = self.repo.get_projected_booking(booking_id)
         if not value:
-            raise HTTPException(status_code=404, detail="Private booking not found")
+            raise HTTPException(status_code=404, detail="私教预约不存在")
         if actor.role == "member" and (not actor.member_id or str(value["member_id"]) != actor.member_id):
-            raise HTTPException(status_code=403, detail="Forbidden")
+            raise HTTPException(status_code=403, detail="没有权限")
         if actor.role == "coach" and (not actor.coach_profile_id or str(value["coach_profile_id"]) != actor.coach_profile_id):
-            raise HTTPException(status_code=403, detail="Forbidden")
+            raise HTTPException(status_code=403, detail="没有权限")
         return value
 
     def _create_slot(self, coach_id: UUID, start_at: datetime, end_at: datetime, actor: CurrentUser, *, trace_id: str, skip_conflict_check: bool = False) -> dict:
@@ -269,28 +269,28 @@ class PrivateTrainingService:
         for row in rows:
             if row["id"] == slot_id:
                 return row
-        raise HTTPException(status_code=404, detail="Private slot not found")
+        raise HTTPException(status_code=404, detail="私教时段不存在")
 
     def _slot(self, slot_id: UUID, *, for_update: bool = False) -> PrivateAvailability:
         slot = self.repo.get_slot(slot_id, for_update=for_update)
         if not slot:
-            raise HTTPException(status_code=404, detail="Private slot not found")
+            raise HTTPException(status_code=404, detail="私教时段不存在")
         return slot
 
     def _enabled_coach(self, coach_id: UUID) -> None:
         coach = self.coach_repo.get_by_id(coach_id)
         if not coach or not coach.enabled:
-            raise HTTPException(status_code=404, detail="Enabled coach not found")
+            raise HTTPException(status_code=404, detail="未找到启用的教练")
 
     @staticmethod
     def _require_future(start_at: datetime, now: datetime) -> None:
         if PrivateTrainingService._utc(start_at) <= PrivateTrainingService._utc(now):
-            raise HTTPException(status_code=409, detail="Private slot is in the past")
+            raise HTTPException(status_code=409, detail="私教时段已开始或已结束")
 
     def _booking_slot(self, booking_id: UUID) -> tuple[PrivateBooking, PrivateAvailability]:
         booking = self.repo.get_booking(booking_id, for_update=True)
         if not booking:
-            raise HTTPException(status_code=404, detail="Private booking not found")
+            raise HTTPException(status_code=404, detail="私教预约不存在")
         slot = self._slot(booking.availability_id, for_update=True)
         return booking, slot
 
@@ -299,11 +299,11 @@ class PrivateTrainingService:
             return requested
         if actor.role == "coach" and actor.coach_profile_id:
             if requested and str(requested) != actor.coach_profile_id:
-                raise HTTPException(status_code=403, detail="Cannot manage another coach private slots")
+                raise HTTPException(status_code=403, detail="不能管理其他教练的私教时段")
             return UUID(actor.coach_profile_id)
         if actor.role == "member" and allow_member_any:
             return requested
-        raise HTTPException(status_code=403, detail="Forbidden")
+        raise HTTPException(status_code=403, detail="没有权限")
 
     @staticmethod
     def _authorize_coach_or_admin(coach_id: UUID, actor: CurrentUser) -> None:
@@ -311,7 +311,7 @@ class PrivateTrainingService:
             return
         if actor.role == "coach" and actor.coach_profile_id and str(coach_id) == actor.coach_profile_id:
             return
-        raise HTTPException(status_code=403, detail="Only admin or owning coach may operate")
+        raise HTTPException(status_code=403, detail="仅管理员或所属教练可操作")
 
     @staticmethod
     def _terminalize(booking: PrivateBooking, actor: CurrentUser, now: datetime) -> None:

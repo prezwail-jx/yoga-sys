@@ -2,6 +2,7 @@
 import type { ClassBooking, ClassBookingStatus, ClassSessionStatus, Member } from "~/types/domain"
 import { getCheckInAvailability } from "~/utils/classBooking"
 import { getApiErrorMessage } from "~/utils/errors"
+import { label, userRoleLabels } from "~/utils/labels"
 
 const route = useRoute()
 const sessionId = String(route.params.sessionId || "")
@@ -317,7 +318,7 @@ async function submitSessionAction() {
               <div class="member-avatar">{{ booking.memberName.slice(0, 1) }}</div>
               <div class="member-details">
                 <div class="member-name-row"><strong>{{ booking.memberName }}</strong><span class="booking-status" :class="`booking-status--${booking.status}`">{{ bookingStatusLabels[booking.status] }}</span></div>
-                <p>预约于 {{ formatShortDateTime(booking.bookedAt) }}<span v-if="booking.bookedByRole"> · {{ booking.bookedByRole === 'admin' ? '管理员代约' : booking.bookedByRole }}</span></p>
+                <p>预约于 {{ formatShortDateTime(booking.bookedAt) }}<span v-if="booking.bookedByRole"> · {{ label(userRoleLabels, booking.bookedByRole) }}</span></p>
                 <p v-if="booking.terminalAt">处理于 {{ formatShortDateTime(booking.terminalAt) }}<span v-if="booking.cancellationReason"> · 原因：{{ booking.cancellationReason }}</span></p>
               </div>
               <div v-if="booking.status === 'reserved'" class="booking-actions">

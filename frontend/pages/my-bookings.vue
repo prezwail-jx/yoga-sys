@@ -116,7 +116,7 @@ async function cancelBooking() {
   <section class="panel bookings-panel">
     <div class="section-heading bookings-heading">
       <div>
-        <p class="eyebrow">Member bookings</p>
+        <p class="eyebrow">我的预约</p>
         <h2>预约记录</h2>
         <p class="hint">共 {{ total }} 条预约记录，身份由当前登录账号确定</p>
       </div>

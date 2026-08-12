@@ -229,7 +229,7 @@ def _booking_action(
     elif action == "cancel":
         value = service.cancel_pending_booking(booking_id, actor=user, reason=payload.get("reason"), trace_id=request.state.trace_id, now=now)
     else:
-        raise HTTPException(status_code=422, detail="Unsupported private booking action")
+        raise HTTPException(status_code=422, detail="不支持的私教预约操作")
     body = _booking_body(value)
     idem.persist(scope=f"private-booking-{action}", actor_id=user.user_id, idempotency_key=key, request_hash=request_hash, response_code=200, response_body=body)
     return body

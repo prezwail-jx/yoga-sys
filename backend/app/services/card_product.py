@@ -43,7 +43,7 @@ class CardProductService:
         if missing:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=f"Specific course not found: {sorted(str(item) for item in missing)[0]}",
+                detail=f"指定课程不存在：{sorted(str(item) for item in missing)[0]}",
             )
         return [str(item) for item in unique_ids]
 
@@ -58,7 +58,7 @@ class CardProductService:
     def get_card_product(self, product_id: UUID) -> CardProduct:
         product = self.card_product_repo.get_by_id(product_id)
         if not product:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card product not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="卡项产品不存在")
         return product
 
     def list_card_products(self, skip: int = 0, limit: int = 20, enabled: bool | None = None) -> tuple[list[CardProduct], int]:

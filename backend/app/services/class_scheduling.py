@@ -40,19 +40,19 @@ class ClassSchedulingService:
     @staticmethod
     def _week_bounds(week_start: date) -> tuple[datetime, datetime]:
         if week_start.weekday() != 0:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="weekStart must be Monday")
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="weekStart 必须是周一")
         local_start = datetime.combine(week_start, time.min, SHANGHAI)
         return local_start.astimezone(timezone.utc), (local_start + timedelta(days=7)).astimezone(timezone.utc)
 
     @staticmethod
     def _aware(value: datetime, field: str) -> datetime:
         if value.tzinfo is None or value.utcoffset() is None:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=f"{field} must include timezone")
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=f"{field} 必须包含时区")
         return value.astimezone(timezone.utc)
 
     @staticmethod
     def _missing(kind: str) -> HTTPException:
-        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{kind} not found")
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"未找到{kind}")
 
     def _resources(
         self,
@@ -69,9 +69,9 @@ class ClassSchedulingService:
             if resource is None:
                 raise self._missing(kind)
             if not resource.enabled:
-                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{kind} is disabled")
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{kind} 已停用")
         if capacity > room.capacity:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Session capacity exceeds room capacity")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="课次容量超过教室容量")
         return course, coach, room
 
     def _validate_schedule(
@@ -86,7 +86,7 @@ class ClassSchedulingService:
         exclude_id: UUID | None = None,
     ) -> None:
         if end_at <= start_at:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="endAt must be after startAt")
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="endAt 必须晚于 startAt")
         self._resources(course_id, coach_id, room_id, capacity)
         reason = self.session_repo.conflict_reason(
             coach_id=coach_id,
@@ -141,18 +141,18 @@ class ClassSchedulingService:
         if current is None:
             raise self._missing("Class session")
         if current.status in {"cancelled", "completed"}:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Terminal session cannot be updated")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="终态课次不能修改")
         changes = request.model_dump(exclude_unset=True)
         if "start_at" in changes:
             changes["start_at"] = self._aware(changes["start_at"], "startAt")
         if "end_at" in changes:
             changes["end_at"] = self._aware(changes["end_at"], "endAt")
         if KEY_FIELDS.intersection(changes) and self.session_repo.has_booking_history(session_id):
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Session has booking history")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="课次已有预约历史")
         occupied = self.session_repo.occupied_count(session_id)
         capacity = changes.get("capacity", current.capacity)
         if capacity < occupied:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Capacity cannot be lower than occupied count")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="容量不能低于已预约人数")
         values = {
             "course_id": changes.get("course_id", current.course_id),
             "coach_id": changes.get("coach_profile_id", current.coach_profile_id),
@@ -173,12 +173,12 @@ class ClassSchedulingService:
             raise self._missing("Class session")
         allowed, target = TRANSITIONS[action]
         if class_session.status not in allowed:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Cannot {action} {class_session.status} session")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"无法对 {class_session.status} 状态的课次执行 {action}")
         current_time = now or datetime.now(timezone.utc)
         if action == "complete" and current_time < class_session.end_at:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Session has not ended")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="课次尚未结束")
         if action in {"cancel", "complete"} and self.session_repo.has_reserved_booking(session_id):
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Session has reserved bookings")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="该课次存在有效预约")
         class_session.status = target
         self.session_repo.update(class_session)
         return self.get(session_id)
@@ -187,7 +187,7 @@ class ClassSchedulingService:
         source_start, source_end = self._week_bounds(source_week_start)
         self._week_bounds(target_week_start)
         if source_week_start == target_week_start:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Source and target weeks must differ")
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="源周与目标周必须不同")
         offset = timedelta(days=(target_week_start - source_week_start).days)
         created: list[dict] = []
         conflicts: list[dict] = []

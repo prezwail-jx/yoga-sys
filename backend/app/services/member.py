@@ -28,17 +28,17 @@ class MemberService:
 
     def create_member(self, req: CreateMemberRequest) -> Member:
         if self.member_repo.get_by_phone(req.phone):
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Phone number already registered")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="手机号已被注册")
         member = Member(**req.model_dump(), status="normal")
         try:
             return self.member_repo.create(member)
         except IntegrityError as exc:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Phone number already registered") from exc
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="手机号已被注册") from exc
 
     def get_member(self, member_id: UUID) -> Member:
         member = self.member_repo.get_by_id(member_id)
         if not member:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="会员不存在")
         return member
 
     def list_members(
@@ -79,7 +79,7 @@ class MemberService:
         if next_status and next_status not in _ALLOWED_TRANSITIONS[member.status]:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"Invalid member status transition: {member.status} -> {next_status}",
+                detail=f"无效的会员状态变更：{member.status} -> {next_status}",
             )
         for field, value in changes.items():
             setattr(member, field, value)
@@ -95,6 +95,6 @@ class MemberService:
         if member.status != "normal":
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"Member status {member.status} does not allow booking",
+                detail=f"会员状态 {member.status} 不允许预约",
             )
         return member

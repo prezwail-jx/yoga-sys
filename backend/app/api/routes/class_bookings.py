@@ -153,7 +153,7 @@ def list_my_bookings(
     user: CurrentUser = Depends(get_current_user),
 ):
     if user.role != "member":
-        raise HTTPException(status_code=403, detail="Member role required")
+        raise HTTPException(status_code=403, detail="需要会员身份")
     items, total = service.list_member(actor=user, skip=skip, limit=limit)
     return {
         "items": [_body(item, user) for item in items],

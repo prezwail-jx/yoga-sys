@@ -2,6 +2,7 @@
 import type { PrivateBooking, PrivateBookingDecisionInput, PrivateSlotInput } from "~/types/domain"
 import { canCancelPendingPrivateBooking, canConfirmPrivateBooking, canRejectPrivateBooking, canSignInPrivateBooking } from "~/utils/privateTraining"
 import { privateTrainingErrorMessage } from "~/utils/privateTrainingErrors"
+import { privateBookingStatusLabels, privateSlotStatusLabels } from "~/utils/labels"
 
 definePageMeta({ middleware: "require-auth" })
 
@@ -153,7 +154,7 @@ async function signIn() {
     <CommonAsyncState :status="slotStatus" :empty="!slotItems.length" pending-text="加载私教时段…" empty-text="暂无可用时段" :error-message="getApiErrorMessage(slotError, '私教时段加载失败')" @retry="refreshSlots">
       <div class="catalog-grid">
         <article v-for="slot in slotItems" :key="slot.id" class="catalog-card">
-          <div class="card-title"><strong>{{ slot.coachName }}</strong><span class="status-badge">{{ slot.status }}</span></div>
+          <div class="card-title"><strong>{{ slot.coachName }}</strong><span class="status-badge">{{ privateSlotStatusLabels[slot.status] }}</span></div>
           <p>{{ formatDateTime(slot.startAt) }} - {{ formatDateTime(slot.endAt) }}</p>
           <p>{{ slot.durationMinutes }} 分钟</p>
           <textarea v-if="isMember && slot.status === 'available'" v-model="bookingMessage" placeholder="给教练留言（选填）" rows="2" />
@@ -171,7 +172,7 @@ async function signIn() {
     <CommonAsyncState :status="bookingStatus" :empty="!bookingItems.length" pending-text="加载预约…" empty-text="暂无预约记录" :error-message="getApiErrorMessage(bookingError, '预约加载失败')" @retry="refreshBookings">
       <div class="table-wrap"><table><thead><tr><th>会员</th><th>教练</th><th>时间</th><th>状态</th><th>操作</th></tr></thead><tbody>
         <tr v-for="booking in bookingItems" :key="booking.id">
-          <td>{{ booking.memberName }}</td><td>{{ booking.coachName }}</td><td>{{ formatDateTime(booking.startAt) }}</td><td>{{ booking.status }}</td>
+          <td>{{ booking.memberName }}</td><td>{{ booking.coachName }}</td><td>{{ formatDateTime(booking.startAt) }}</td><td>{{ privateBookingStatusLabels[booking.status] }}</td>
           <td><button class="button-secondary" type="button" @click="selectedBooking = booking">处理</button></td>
         </tr>
       </tbody></table></div>
@@ -179,7 +180,7 @@ async function signIn() {
   </section>
 
   <section v-if="selectedBooking" class="panel action-sheet">
-    <div class="section-heading"><div><h3>{{ selectedBooking.memberName }} · {{ selectedBooking.status }}</h3><p class="hint">{{ formatDateTime(selectedBooking.startAt) }}</p></div><button class="button-secondary" type="button" @click="selectedBooking = null">关闭</button></div>
+    <div class="section-heading"><div><h3>{{ selectedBooking.memberName }} · {{ privateBookingStatusLabels[selectedBooking.status] }}</h3><p class="hint">{{ formatDateTime(selectedBooking.startAt) }}</p></div><button class="button-secondary" type="button" @click="selectedBooking = null">关闭</button></div>
     <label v-if="selectedBooking.status === 'pending'" class="full-width">原因（拒绝/取消时选填）<textarea v-model="decisionReason" rows="2" /></label>
     <div v-if="selectedBooking.status === 'confirmed'" class="form-grid">
       <label class="full-width">上课内容<textarea v-model="lessonForm.content" rows="3" required /></label>
