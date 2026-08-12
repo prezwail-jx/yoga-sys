@@ -19,4 +19,7 @@ Page({
   logout() {
     sessionService.logout()
   },
+  security() {
+    wx.navigateTo({ url: "/pages/account/security/index" })
+  },
 })

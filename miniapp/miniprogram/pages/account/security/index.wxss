@@ -1,0 +1,35 @@
+.security-form__label {
+  display: block;
+  margin: 24rpx 0 12rpx;
+  color: #64736e;
+  font-size: 24rpx;
+}
+
+.security-form__input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 88rpx;
+  padding: 0 26rpx;
+  border: 1rpx solid rgba(23, 63, 53, 0.22);
+  border-radius: 18rpx;
+  background: #fff;
+  color: #18312b;
+  caret-color: #18312b;
+  -webkit-text-fill-color: #18312b;
+  font-size: 30rpx;
+  line-height: 88rpx;
+}
+
+.security-form__error {
+  display: block;
+  margin-top: 20rpx;
+  color: #a13f32;
+  font-size: 24rpx;
+}
+
+.security-form__success {
+  display: block;
+  margin-top: 20rpx;
+  color: #27614f;
+  font-size: 24rpx;
+}

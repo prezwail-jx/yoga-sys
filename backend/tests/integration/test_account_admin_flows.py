@@ -110,3 +110,38 @@ def test_admin_resets_coach_password(client, auth_headers, db):
     assert client.post(
         "/auth/login", json={"username": "coach", "password": "new-coach-password"}
     ).status_code == 200
+
+
+def test_coach_changes_own_password_and_records_role_audit(client, auth_headers, db):
+    coach_headers = login_headers(client, "coach", "coach123")
+    wrong_old = client.post(
+        "/auth/change-password",
+        json={"oldPassword": "wrong-password", "newPassword": "final-coach-password"},
+        headers=coach_headers,
+    )
+    assert wrong_old.status_code == 401
+    changed = client.post(
+        "/auth/change-password",
+        json={"oldPassword": "coach123", "newPassword": "final-coach-password"},
+        headers=coach_headers,
+    )
+    assert changed.status_code == 204
+    assert client.post(
+        "/auth/login", json={"username": "coach", "password": "coach123"}
+    ).status_code == 401
+    assert client.post(
+        "/auth/login", json={"username": "coach", "password": "final-coach-password"}
+    ).status_code == 200
+
+    audits = list(
+        db.scalars(
+            select(AuditLog).where(
+                AuditLog.action.in_(["coach_account_password_change"])
+            )
+        ).all()
+    )
+    assert {audit.action for audit in audits} == {"coach_account_password_change"}
+    serialized = json.dumps([audit.after_state for audit in audits])
+    assert "coach123" not in serialized
+    assert "final-coach-password" not in serialized
+    assert "passwordHash" not in serialized

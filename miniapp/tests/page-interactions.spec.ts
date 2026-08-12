@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   shouldShowLoginChoice: vi.fn(),
   loginAndRoute: vi.fn(),
   passwordLoginAndRoute: vi.fn(),
+  changePassword: vi.fn(),
   logout: vi.fn(),
   bookClass: vi.fn(),
   schedule: vi.fn(),
@@ -45,6 +46,7 @@ vi.mock("../miniprogram/services", () => {
       shouldShowLoginChoice: mocks.shouldShowLoginChoice,
       loginAndRoute: mocks.loginAndRoute,
       passwordLoginAndRoute: mocks.passwordLoginAndRoute,
+      changePassword: mocks.changePassword,
       logout: mocks.logout,
     },
     storageService: { user: () => ({ role: "member" }) },
@@ -73,6 +75,7 @@ beforeAll(async () => {
   await import("../miniprogram/pages/member/schedule/index")
   await import("../miniprogram/pages/startup/index")
   await import("../miniprogram/pages/account/index")
+  await import("../miniprogram/pages/account/security/index")
 })
 
 beforeEach(() => {
@@ -188,5 +191,40 @@ describe("Mini Program page interactions", () => {
     page.logout()
 
     expect(mocks.logout).toHaveBeenCalledOnce()
+  })
+
+  it("validates password change form before submitting", async () => {
+    const page = mount(definitions[4])
+    page.data.oldPassword = "old-password"
+    page.data.newPassword = "short"
+    page.data.confirmation = "short"
+
+    await page.submit()
+
+    expect(mocks.changePassword).not.toHaveBeenCalled()
+    expect(page.data.error).toContain("8")
+
+    page.data.newPassword = "new-password-123"
+    page.data.confirmation = "different-123"
+    await page.submit()
+    expect(mocks.changePassword).not.toHaveBeenCalled()
+    expect(page.data.error).toContain("不一致")
+  })
+
+  it("submits password change once and clears the password fields", async () => {
+    const page = mount(definitions[4])
+    mocks.changePassword.mockResolvedValueOnce(undefined)
+    page.data.oldPassword = "old-password"
+    page.data.newPassword = "new-password-123"
+    page.data.confirmation = "new-password-123"
+
+    await page.submit()
+
+    expect(mocks.changePassword).toHaveBeenCalledOnce()
+    expect(mocks.changePassword).toHaveBeenCalledWith("old-password", "new-password-123")
+    expect(page.data.oldPassword).toBe("")
+    expect(page.data.newPassword).toBe("")
+    expect(page.data.confirmation).toBe("")
+    expect(page.data.success).toContain("密码修改成功")
   })
 })

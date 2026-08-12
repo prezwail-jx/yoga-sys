@@ -14,6 +14,13 @@ describe("navigation information architecture", () => {
     expect(getNavigationGroups("coach").flatMap(group => group.items).some(item => item.to === "/class-catalog")).toBe(false)
   })
 
+  it("exposes account security to both member and coach", () => {
+    const memberTos = getNavigationGroups("member").flatMap(group => group.items).map(item => item.to)
+    const coachTos = getNavigationGroups("coach").flatMap(group => group.items).map(item => item.to)
+    expect(memberTos).toContain("/account-security")
+    expect(coachTos).toContain("/account-security")
+  })
+
   it("matches nested business routes to their parent navigation", () => {
     const memberItem = getNavigationGroups("admin").flatMap(group => group.items).find(item => item.to === "/members")!
     const scheduleItem = getNavigationGroups("admin").flatMap(group => group.items).find(item => item.to === "/schedule")!

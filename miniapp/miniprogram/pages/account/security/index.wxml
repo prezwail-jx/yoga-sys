@@ -1,0 +1,16 @@
+<view class="page-shell">
+  <text class="eyebrow">Account security</text>
+  <view class="title">修改登录密码</view>
+  <view class="muted">验证当前密码后设置新密码。新密码至少 8 位，修改成功后旧密码立即失效。</view>
+  <view class="panel security-form">
+    <text class="security-form__label">当前密码</text>
+    <input class="security-form__input" value="{{oldPassword}}" password maxlength="128" cursor-spacing="24" bindinput="updateOldPassword" placeholder="请输入当前密码" />
+    <text class="security-form__label">新密码</text>
+    <input class="security-form__input" value="{{newPassword}}" password maxlength="128" cursor-spacing="24" bindinput="updateNewPassword" placeholder="至少 8 位" />
+    <text class="security-form__label">确认新密码</text>
+    <input class="security-form__input" value="{{confirmation}}" password maxlength="128" cursor-spacing="24" bindinput="updateConfirmation" placeholder="再次输入新密码" />
+    <text wx:if="{{error}}" class="security-form__error">{{error}}</text>
+    <text wx:if="{{success}}" class="security-form__success">{{success}}</text>
+    <button class="primary-button" loading="{{pending}}" disabled="{{pending}}" bindtap="submit">确认修改密码</button>
+  </view>
+</view>

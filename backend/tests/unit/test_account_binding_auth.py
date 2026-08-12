@@ -315,14 +315,14 @@ def test_member_changes_password_only_after_old_password_verification():
     service = AuthService(accounts, ResourceRepo(), ResourceRepo())
 
     with pytest.raises(HTTPException) as wrong_password:
-        service.change_member_password(
+        service.change_own_password(
             account.username,
             ChangePasswordRequest(oldPassword="wrong-password", newPassword="new-password"),
         )
     assert wrong_password.value.status_code == 401
     assert verify_password("old-password", account.password_hash)
 
-    service.change_member_password(
+    service.change_own_password(
         account.username,
         ChangePasswordRequest(oldPassword="old-password", newPassword="new-password"),
     )
@@ -330,16 +330,40 @@ def test_member_changes_password_only_after_old_password_verification():
     assert verify_password("new-password", account.password_hash)
 
 
-@pytest.mark.parametrize("role", ["admin", "coach"])
-def test_non_member_cannot_use_self_service_password_change(role):
+def test_coach_changes_own_password_after_old_password_verification():
     account = SimpleNamespace(
-        username=f"{role}-user", role=role, password_hash=get_password_hash("old-password")
+        id=uuid4(), username="coach-user", role="coach", member_id=None,
+        coach_profile_id=uuid4(), password_hash=get_password_hash("old-password"),
+    )
+    accounts = AccountRepo()
+    accounts.accounts.append(account)
+    service = AuthService(accounts, ResourceRepo(), ResourceRepo())
+
+    with pytest.raises(HTTPException) as wrong_password:
+        service.change_own_password(
+            account.username,
+            ChangePasswordRequest(oldPassword="wrong-password", newPassword="new-password"),
+        )
+    assert wrong_password.value.status_code == 401
+    assert verify_password("old-password", account.password_hash)
+
+    service.change_own_password(
+        account.username,
+        ChangePasswordRequest(oldPassword="old-password", newPassword="new-password"),
+    )
+    assert not verify_password("old-password", account.password_hash)
+    assert verify_password("new-password", account.password_hash)
+
+
+def test_admin_cannot_use_self_service_password_change():
+    account = SimpleNamespace(
+        username="admin-user", role="admin", password_hash=get_password_hash("old-password")
     )
     accounts = AccountRepo()
     accounts.accounts.append(account)
 
     with pytest.raises(HTTPException) as forbidden:
-        AuthService(accounts, ResourceRepo(), ResourceRepo()).change_member_password(
+        AuthService(accounts, ResourceRepo(), ResourceRepo()).change_own_password(
             account.username,
             ChangePasswordRequest(oldPassword="old-password", newPassword="new-password"),
         )

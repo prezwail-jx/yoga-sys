@@ -3,7 +3,7 @@ import type { ChangePasswordInput } from "~/types/domain"
 import { passwordValidationError } from "~/utils/accountManagement"
 import { getApiErrorMessage } from "~/utils/errors"
 
-definePageMeta({ middleware: "require-member" })
+definePageMeta({ middleware: "require-account-user" })
 
 const api = useGymApi()
 const form = reactive<ChangePasswordInput>({ oldPassword: "", newPassword: "" })

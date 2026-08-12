@@ -47,6 +47,9 @@ const coachGroups: NavigationGroup[] = [
     { to: "/schedule", label: "我的课表", icon: "i-lucide-calendar-days", description: "查看本人团课安排", aliases: ["/sessions"] },
     { to: "/private-training", label: "私教工作台", icon: "i-lucide-user-check", description: "管理私教时段和预约" },
   ] },
+  { label: "个人设置", items: [
+    { to: "/account-security", label: "账号安全", icon: "i-lucide-shield-check", description: "修改登录密码" },
+  ] },
 ]
 
 export function getNavigationGroups(role?: string): NavigationGroup[] {

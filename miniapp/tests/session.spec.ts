@@ -238,4 +238,19 @@ describe("SessionService", () => {
     await expect(session.bindAndRoute("member.one", "password")).rejects.toThrow("already in progress")
     expect(runtime.requests).toHaveLength(1)
   })
+
+  it("changes the password without persisting it to storage", async () => {
+    const runtime = new FakeRuntime()
+    const { session } = services(runtime)
+    runtime.requestHandler = (options) => options.success({ data: null, statusCode: 204, header: {} })
+
+    await session.changePassword("old-password", "new-password-123")
+
+    const request = runtime.requests.find(item => item.url.endsWith("/auth/change-password"))!
+    expect(request.method).toBe("POST")
+    expect(JSON.stringify(request.data)).toBe(JSON.stringify({ oldPassword: "old-password", newPassword: "new-password-123" }))
+    const serialized = JSON.stringify([...runtime.storage.entries()])
+    expect(serialized).not.toContain("old-password")
+    expect(serialized).not.toContain("new-password-123")
+  })
 })

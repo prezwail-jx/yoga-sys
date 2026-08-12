@@ -4,6 +4,7 @@
     "pages/bind/index",
     "pages/workspace/index",
     "pages/account/index",
+    "pages/account/security/index",
     "pages/member/schedule/index",
     "pages/member/private-training/index",
     "pages/member/bookings/index",

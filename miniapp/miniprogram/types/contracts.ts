@@ -33,3 +33,8 @@ export interface PasswordLoginResult {
   token_type: string
   role: string
 }
+
+export interface ChangePasswordInput {
+  oldPassword: string
+  newPassword: string
+}

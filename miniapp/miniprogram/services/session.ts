@@ -102,6 +102,13 @@ export class SessionService {
     }
   }
 
+  async changePassword(oldPassword: string, newPassword: string): Promise<void> {
+    await this.api.request<never>("/auth/change-password", {
+      method: "POST",
+      body: { oldPassword, newPassword },
+    })
+  }
+
   async bindAndRoute(username: string, password: string): Promise<CurrentUser> {
     if (this.bindingPending) throw new Error("Binding is already in progress")
     const challenge = this.storage.binding()

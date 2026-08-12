@@ -22,3 +22,12 @@
   line-height: 1.6;
   text-align: center;
 }
+
+.account-card__security {
+  margin-top: 28rpx;
+  border: 1rpx solid #173f35;
+  border-radius: 999rpx;
+  background: transparent;
+  color: #173f35;
+  font-size: 28rpx;
+}

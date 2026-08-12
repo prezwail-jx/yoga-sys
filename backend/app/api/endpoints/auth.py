@@ -81,10 +81,10 @@ def change_password(
     session: Session = Depends(get_session),
     user: CurrentUser = Depends(get_current_user),
 ):
-    account = auth_service.change_member_password(user.user_id, payload)
+    account = auth_service.change_own_password(user.user_id, payload)
     record_audit(
         session, trace_id=request.state.trace_id,
-        action="member_account_password_change", user=user,
+        action=f"{user.role}_account_password_change", user=user,
         object_type="admin_user", object_id=str(account.id), member_id=account.member_id,
         after_state={"username": account.username, "passwordUpdated": True},
     )
