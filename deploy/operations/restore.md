@@ -55,7 +55,7 @@ docker compose -f "$PROJECT_DIR/$COMPOSE_FILE" start "$BACKEND_SERVICE"
 docker compose -f "$PROJECT_DIR/$COMPOSE_FILE" ps
 ```
 
-trial 验证 `https://trial.yoga.tuitukj.com/healthz` 和 `https://yoga.tuitukj.com/backend-trial/healthz`；production 验证 `https://yoga.tuitukj.com/healthz` 和 `https://yoga.tuitukj.com/backend/healthz`。
+trial 验证 `https://yoga.tuitukj.com/backend-trial/healthz`；production 验证 `https://yoga.tuitukj.com/healthz` 和 `https://yoga.tuitukj.com/backend/healthz`。
 
 ## 安全约束
 

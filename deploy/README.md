@@ -1,15 +1,15 @@
-# Yoga Sys Dual-Environment Deployment
+# Yoga Sys Single-Domain Dual-Environment Deployment
 
-同一服务器运行相互隔离的 trial 和 production 数据栈，由现有 trial 栈中的 Nginx 统一发布 80/443。
+同一服务器运行相互隔离的 trial 和 production 数据栈，共用 `https://yoga.tuitukj.com`，由现有 trial 栈中的 Nginx 统一发布 80/443。
 
 ## 拓扑
 
-| 环境 | Compose | 服务器目录 | API | 网页 | 数据库 |
+| 环境 | Compose | 服务器目录 | API 路径 | 浏览器网页 | 数据库 |
 |---|---|---|---|---|---|
-| trial | `compose.prod.yml` (`yoga-sys`) | `/srv/yoga-sys` | `/backend-trial` | `trial.yoga.tuitukj.com` | `yoga_sys`，保留现有卷 |
+| trial | `compose.prod.yml` (`yoga-sys`) | `/srv/yoga-sys` | `/backend-trial` | 无独立入口 | `yoga_sys`，保留现有卷 |
 | production | `compose.release.yml` (`yoga-sys-prod`) | `/srv/yoga-sys-prod` | `/backend` | `yoga.tuitukj.com` | `yoga_sys_prod`，新空卷 |
 
-两套 backend/frontend 通过预创建的外部网络 `yoga-edge` 与边缘 Nginx 通信。PostgreSQL 只加入各自内部网络，production Compose 不发布任何宿主机端口。
+两套 backend/frontend 通过预创建的外部网络 `yoga-edge` 与边缘 Nginx 通信。PostgreSQL 只加入各自内部网络，production Compose 不发布任何宿主机端口。不新增任何子域名。
 
 ## 文件和密钥
 
@@ -25,25 +25,17 @@ production 目录需包含 `compose.release.yml`、`env/`，并与 trial 使用�
 
 ## 安全迁移顺序
 
-1. 为 `trial.yoga.tuitukj.com` 添加指向 `124.220.91.149` 的 DNS A 记录。
-2. 备份现有 `yoga_sys`；不得执行 `down -v` 或删除 `yoga-sys_postgres-data`。
-3. 创建 `yoga-edge`，更新并重建现有 trial 的 backend、frontend、nginx 网络连接。
-4. 使用 `nginx/bootstrap.conf` 为两个域名签发同一 SAN 证书。
-5. 切换到 `nginx/production-transition.conf`。此时 `/backend` 与 `/backend-trial` 都仍指向 trial，现有客户端不中断。
-6. 在 `/srv/yoga-sys-prod` 启动全新的 `postgres-prod`，迁移并 seed；不得导入 trial 数据。
-7. 启动 `backend-prod` 和 `frontend-prod`，从 `yoga-edge` 内验证健康状态。
-8. 切换到 `nginx/production.conf`，正式 `/backend` 和主域网页才转向 production。
-9. 上传 trial 小程序，确认它请求 `/backend-trial`；release 继续请求 `/backend`。
+1. 备份现有 `yoga_sys`；不得执行 `down -v` 或删除 `yoga-sys_postgres-data`。
+2. 创建 `yoga-edge`，更新并重建现有 trial 的 backend、frontend、nginx 网络连接。
+3. 切换到 `nginx/production-transition.conf`。此时 `/backend` 与 `/backend-trial` 都仍指向 trial，现有客户端不中断。
+4. 在 `/srv/yoga-sys-prod` 启动全新的 `postgres-prod`，迁移并 seed；不得导入 trial 数据。
+5. 启动 `backend-prod` 和 `frontend-prod`，从 `yoga-edge` 内验证健康状态。
+6. 切换到 `nginx/production.conf`，正式 `/backend` 和主域网页才转向 production。
+7. 上传 trial 小程序，确认它请求 `/backend-trial`；release 继续请求 `/backend`。
 
 ```bash
 # trial 网络更新
 docker compose -f /srv/yoga-sys/compose.prod.yml up -d --force-recreate backend frontend nginx
-
-# 双域名证书（必须覆盖已有证书）
-docker compose -f /srv/yoga-sys/compose.prod.yml run --rm --entrypoint certbot certbot certonly \
-  --webroot --webroot-path=/var/www/certbot --cert-name yoga.tuitukj.com --expand \
-  --domain yoga.tuitukj.com --domain trial.yoga.tuitukj.com \
-  --email <admin@example.com> --agree-tos --no-eff-email
 
 # production 首次启动
 docker compose -f /srv/yoga-sys-prod/compose.release.yml config --quiet
@@ -67,10 +59,9 @@ docker compose -f compose.prod.yml restart nginx
 curl https://yoga.tuitukj.com/backend/healthz
 curl https://yoga.tuitukj.com/backend-trial/healthz
 curl https://yoga.tuitukj.com/healthz
-curl https://trial.yoga.tuitukj.com/healthz
 ```
 
-若 production 验证失败，将 Nginx 切回 `production-transition.conf`，即可让主域网页和 `/backend` 回到 trial；不要回滚或删除数据库卷。代码回滚使用上一镜像 tag，数据恢复见 `operations/restore.md`。
+若 production 验证失败，将 Nginx 切回 `production-transition.conf`，即可让 `/backend` 和主域网页回到 trial；不要回滚或删除数据库卷。代码回滚使用上一镜像 tag，数据恢复见 `operations/restore.md`。
 
 ## 备份
 
