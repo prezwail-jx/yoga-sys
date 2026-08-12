@@ -24,9 +24,11 @@ describe("role routing", () => {
     expect(runtime.relaunches.at(-1)).toBe("/pages/forbidden/index")
   })
 
-  it("selects local and production API hosts by environment version", () => {
+  it("selects isolated API bases by environment version", () => {
     const runtime = new FakeRuntime()
     expect(apiBaseUrl(runtime)).toBe("http://127.0.0.1:8000")
+    runtime.envVersion = "trial"
+    expect(apiBaseUrl(runtime)).toBe("https://yoga.tuitukj.com/backend-trial")
     runtime.envVersion = "release"
     expect(apiBaseUrl(runtime)).toBe("https://yoga.tuitukj.com/backend")
   })

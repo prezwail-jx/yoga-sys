@@ -4,7 +4,7 @@ export type EnvironmentVersion = "develop" | "trial" | "release"
 
 const API_BASE_URLS: Record<EnvironmentVersion, string> = {
   develop: "http://127.0.0.1:8000",
-  trial: "https://yoga.tuitukj.com/backend",
+  trial: "https://yoga.tuitukj.com/backend-trial",
   release: "https://yoga.tuitukj.com/backend",
 }
 

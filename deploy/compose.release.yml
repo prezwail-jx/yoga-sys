@@ -1,0 +1,55 @@
+name: yoga-sys-prod
+
+services:
+  postgres-prod:
+    image: postgres:16
+    restart: unless-stopped
+    env_file:
+      - ./env/postgres.prod.env
+    volumes:
+      - postgres-prod-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - internal-prod
+
+  backend-prod:
+    image: yoga-sys-backend:${YOGA_IMAGE_TAG:?set YOGA_IMAGE_TAG to the release image tag}
+    restart: unless-stopped
+    env_file:
+      - ./env/backend.prod.env
+    depends_on:
+      postgres-prod:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - internal-prod
+      - edge
+
+  frontend-prod:
+    image: yoga-sys-frontend:${YOGA_IMAGE_TAG:?set YOGA_IMAGE_TAG to the release image tag}
+    restart: unless-stopped
+    environment:
+      NUXT_BACKEND_BASE_URL: http://backend-prod:8000
+    depends_on:
+      backend-prod:
+        condition: service_healthy
+    networks:
+      - edge
+
+volumes:
+  postgres-prod-data:
+
+networks:
+  internal-prod:
+    driver: bridge
+  edge:
+    name: yoga-edge
+    external: true

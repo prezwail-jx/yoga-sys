@@ -188,6 +188,16 @@ The production API hostname is `yoga.tuitukj.com`. Infrastructure verification o
 
 Development and trial Mini Program builds expose the existing password login as a testing option alongside WeChat login. Password login accepts only eligible member and coach accounts, stores no password, creates no WeChat identity binding, and records the authentication mode so an expired password session returns to the login chooser rather than silently switching to WeChat authentication. Release builds hide and locally reject this option, retaining WeChat as the only Mini Program login path. Administrator accounts remain unsupported in every Mini Program environment.
 
+### 11. Isolate trial and production data on the public server
+
+The existing `/srv/yoga-sys` Compose project and `yoga-sys_postgres-data` volume become the trial environment in place, preserving current test accounts, bookings, transactions, audits, and WeChat bindings. A separate `/srv/yoga-sys-prod` project named `yoga-sys-prod` creates `yoga_sys_prod` in a new named volume. Production starts empty and never receives a copy of trial business or identity data.
+
+The trial backend remains available at `https://yoga.tuitukj.com/backend-trial`, while release traffic uses `https://yoga.tuitukj.com/backend`. Browser frontends use `https://trial.yoga.tuitukj.com` and `https://yoga.tuitukj.com` respectively. The edge Nginx stays in the trial project because it already owns ports 80/443 and the certificate volumes; both application stacks join an external `yoga-edge` network, while each PostgreSQL service remains on an environment-private network.
+
+Migration uses three Nginx configurations. `bootstrap.conf` serves ACME over HTTP for both hostnames. `production-transition.conf` provides HTTPS but deliberately sends both API paths and browser hosts to trial without resolving production upstreams. Only after the empty production database is migrated, seeded, and health-checked does `production.conf` route `/backend` and the primary browser host to production. Rollback switches to the transition config and does not delete or restore either database volume.
+
+Trial and production use separate database credentials, JWT signing secrets, identity peppers, source-fingerprint peppers, backup directories, and restore commands. They may use the same Mini Program AppID/AppSecret, so a WeChat user can have independent bindings in each isolated database. Deployment procedures prohibit `docker compose down -v` and require environment-specific backup prefixes and target verification before restore.
+
 ## Risks / Trade-offs
 
 - [Concurrent account/auth changes cause migration or merge conflicts] -> Reconcile `improve-account-member-admin-flows` first and make the WeChat table reference the final account model.

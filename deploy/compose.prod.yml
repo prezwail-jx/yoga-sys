@@ -1,3 +1,5 @@
+# Existing stack retained as the trial environment. Keep this project name so
+# Docker continues to use the existing yoga-sys_postgres-data volume.
 name: yoga-sys
 
 services:
@@ -30,7 +32,10 @@ services:
       timeout: 5s
       retries: 6
     networks:
-      - internal
+      internal:
+      edge:
+        aliases:
+          - backend-trial
 
   frontend:
     image: yoga-sys-frontend:${YOGA_IMAGE_TAG:?set YOGA_IMAGE_TAG to the release image tag}
@@ -41,7 +46,10 @@ services:
       backend:
         condition: service_healthy
     networks:
-      - internal
+      internal:
+      edge:
+        aliases:
+          - frontend-trial
 
   nginx:
     image: nginx:alpine
@@ -58,6 +66,7 @@ services:
       - frontend
     networks:
       - internal
+      - edge
 
   certbot:
     image: certbot/certbot:${CERTBOT_IMAGE_TAG:-v5.7.0}
@@ -75,3 +84,6 @@ volumes:
 networks:
   internal:
     driver: bridge
+  edge:
+    name: yoga-edge
+    external: true

@@ -1,160 +1,140 @@
-# Yoga Sys 生产部署手册
+# Yoga Sys 双环境生产部署手册
 
-本文档记录 yoga-sys 生产服务器的实际部署步骤与踩坑记录，供上线与升级复用。
+本文记录 `124.220.91.149` 单机双环境部署。当前 `/srv/yoga-sys` 及其 `yoga_sys` 数据库原地保留为 trial；production 在 `/srv/yoga-sys-prod` 创建全新空数据库，不复制测试业务数据。
 
-## 目标环境
+## 环境映射
 
-- 服务器：124.220.91.149（x86_64 / amd64），Ubuntu/Debian
-- 域名：yoga.tuitukj.com（ICP 已备案，A 记录指向该服务器）
-- 交付物：`yoga-sys-release-<日期>-linux-amd64.tar.gz`（离线部署包 + `.sha256` 校验文件）
+| 用途 | trial | production |
+|---|---|---|
+| Compose / 项目名 | `compose.prod.yml` / `yoga-sys` | `compose.release.yml` / `yoga-sys-prod` |
+| 网页 | `https://trial.yoga.tuitukj.com` | `https://yoga.tuitukj.com` |
+| 小程序 API | `https://yoga.tuitukj.com/backend-trial` | `https://yoga.tuitukj.com/backend` |
+| PostgreSQL | `yoga / yoga_sys` | `yoga_prod / yoga_sys_prod` |
+| 数据卷 | `yoga-sys_postgres-data`（现有） | `yoga-sys-prod_postgres-prod-data`（新建） |
+| 备份目录 | `/srv/yoga-sys/backups` | `/srv/yoga-sys-prod/backups` |
 
-## 部署包结构
+本地 develop API 为 `http://127.0.0.1:8000`。同一小程序可共用 AppID/AppSecret，但两环境的数据库密码、JWT secret、identity pepper、source fingerprint pepper 必须完全独立。
+
+## 前置条件
+
+- `yoga.tuitukj.com` 和 `trial.yoga.tuitukj.com` 的 A 记录均指向 `124.220.91.149`。
+- 云安全组和 UFW 放行 80/443，PostgreSQL、FastAPI、Nuxt 不发布宿主机端口。
+- 新镜像基于已提交 SHA 构建并导入服务器；当前 `20260811` 镜像不包含后续代码，部署前必须重新构建。
+- 真实环境文件权限为 `root:root 0600`，不得提交仓库。
+
+## 部署文件
 
 ```text
-yoga-sys-release-20260811-linux-amd64/
-├── compose.prod.yml          # 生产五服务编排
-├── README.md
-├── release-manifest.txt      # 镜像 ID / Git SHA / 版本说明
-├── SHA256SUMS
-├── env/                      # 环境变量示例（真实文件在服务器生成，勿提交）
-│   ├── backend.env.example
-│   └── postgres.env.example
-├── nginx/
-│   ├── bootstrap.conf        # HTTP 引导（先于证书）
-│   └── production.conf       # HTTPS 生产
-├── operations/
-│   ├── backup.sh             # 数据库备份脚本
-│   └── restore.md            # 恢复流程
-└── images/
-    └── yoga-stack-<日期>-linux-amd64.tar   # 5 个镜像
+/srv/yoga-sys/                    # trial + edge Nginx/certbot
+├── compose.prod.yml
+├── env/backend.env
+├── env/postgres.env
+├── nginx/{bootstrap,production-transition,production,default}.conf
+└── operations/
+
+/srv/yoga-sys-prod/               # production，无宿主机端口
+├── compose.release.yml
+├── env/backend.prod.env
+├── env/postgres.prod.env
+└── operations/
 ```
 
-## 一次性上线步骤
+## 首次拆分步骤
 
-### 1. 上传并校验
+### 1. 备份并确认 trial 数据卷
 
 ```bash
-scp yoga-sys-release-<日期>-linux-amd64.tar.gz root@124.220.91.149:/root/
-scp yoga-sys-release-<日期>-linux-amd64.tar.gz.sha256 root@124.220.91.149:/root/
-cd /root && sha256sum -c yoga-sys-release-<日期>-linux-amd64.tar.gz.sha256
+/srv/yoga-sys/operations/backup.sh
+docker volume inspect yoga-sys_postgres-data
+docker compose -f /srv/yoga-sys/compose.prod.yml ps
 ```
 
-### 2. 安装 Docker（如未安装）
+禁止执行 `docker compose down -v`，禁止删除或改名现有 `yoga-sys_postgres-data`。
+
+### 2. 创建共享边缘网络
 
 ```bash
-sudo apt update
-sudo apt install -y ca-certificates curl
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-sudo chmod a+r /etc/apt/keyrings/docker.asc
-. /etc/os-release
-printf '%s\n' "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME} stable" | sudo tee /etc/apt/sources.list.d/docker.list
-sudo apt update && sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+docker network inspect yoga-edge >/dev/null 2>&1 || docker network create yoga-edge
+docker compose -f /srv/yoga-sys/compose.prod.yml config --quiet
+docker compose -f /srv/yoga-sys/compose.prod.yml up -d --force-recreate backend frontend nginx
 ```
 
-### 3. 解压与导入镜像
+现有 Compose 的项目名保持 `yoga-sys`，因此数据库继续挂载原卷。确认 `backend-trial`、`frontend-trial` 可由 Nginx 解析。
+
+### 3. 签发双域名证书
+
+先将 `bootstrap.conf` 复制为 `default.conf`，再扩展现有证书：
 
 ```bash
-sudo mkdir -p /srv/yoga-sys
-sudo tar -xzf yoga-sys-release-<日期>-linux-amd64.tar.gz -C /srv/yoga-sys --strip-components=1
-cd /srv/yoga-sys
-sudo docker load -i images/yoga-stack-<日期>-linux-amd64.tar
-docker image ls   # 确认 5 个镜像
+cp /srv/yoga-sys/nginx/bootstrap.conf /srv/yoga-sys/nginx/default.conf
+docker compose -f /srv/yoga-sys/compose.prod.yml restart nginx
+docker compose -f /srv/yoga-sys/compose.prod.yml run --rm --entrypoint certbot certbot certonly \
+  --webroot --webroot-path=/var/www/certbot --cert-name yoga.tuitukj.com --expand \
+  --domain yoga.tuitukj.com --domain trial.yoga.tuitukj.com \
+  --email <你的邮箱> --agree-tos --no-eff-email
 ```
 
-### 4. 写环境变量（敏感，勿外传）
+切换到 `production-transition.conf`。过渡配置中 `/backend` 与 `/backend-trial` 都指向 trial，且不引用尚未启动的 production upstream：
 
 ```bash
-sudo cp env/postgres.env.example env/postgres.env
-sudo cp env/backend.env.example env/backend.env
-sudo chmod 600 env/postgres.env env/backend.env
-sudoedit env/postgres.env    # POSTGRES_PASSWORD
-sudoedit env/backend.env     # JWT_SECRET / WECHAT_APP_SECRET / 两个 pepper / 数据库密码
+cp /srv/yoga-sys/nginx/production-transition.conf /srv/yoga-sys/nginx/default.conf
+docker compose -f /srv/yoga-sys/compose.prod.yml exec nginx nginx -t
+docker compose -f /srv/yoga-sys/compose.prod.yml restart nginx
 ```
 
-密钥用 `openssl rand -hex 32` 生成；`JWT_SECRET`、`WECHAT_APP_SECRET`、`WECHAT_IDENTITY_PEPPER`、`WECHAT_SOURCE_FINGERPRINT_PEPPER` 必须互不相同；`DATABASE_URL` 密码与 `postgres.env` 一致。
+### 4. 创建 production 空库
 
 ```bash
-sudo tee .env <<'EOF'
-YOGA_IMAGE_TAG=<日期>
-EOF
-docker compose -f compose.prod.yml config --quiet
+install -d -m 750 /srv/yoga-sys-prod/env /srv/yoga-sys-prod/backups
+cp env/backend.prod.env.example /srv/yoga-sys-prod/env/backend.prod.env
+cp env/postgres.prod.env.example /srv/yoga-sys-prod/env/postgres.prod.env
+chmod 600 /srv/yoga-sys-prod/env/*.env
 ```
 
-### 5. 起库、迁移、seed（一次性）
+用 `openssl rand -hex 32` 生成各项 production 密钥，确认 `DATABASE_URL` 使用 `postgres-prod:5432/yoga_sys_prod`，且密码与 `postgres.prod.env` 一致。随后：
 
 ```bash
-docker compose -f compose.prod.yml up -d postgres
-docker compose -f compose.prod.yml exec postgres pg_isready -U yoga -d yoga_sys
-docker compose -f compose.prod.yml run --rm backend alembic upgrade head
-docker compose -f compose.prod.yml run --rm backend alembic current   # 0008_wechat_identity (head)
-docker compose -f compose.prod.yml run --rm backend python -m app.scripts.seed_users
+docker compose -f /srv/yoga-sys-prod/compose.release.yml config --quiet
+docker compose -f /srv/yoga-sys-prod/compose.release.yml up -d postgres-prod
+docker compose -f /srv/yoga-sys-prod/compose.release.yml exec postgres-prod \
+  pg_isready -U yoga_prod -d yoga_sys_prod
+docker compose -f /srv/yoga-sys-prod/compose.release.yml run --rm backend-prod alembic upgrade head
+docker compose -f /srv/yoga-sys-prod/compose.release.yml run --rm backend-prod alembic current
+docker compose -f /srv/yoga-sys-prod/compose.release.yml run --rm backend-prod \
+  python -m app.scripts.seed_users
+docker compose -f /srv/yoga-sys-prod/compose.release.yml up -d
 ```
 
-seed 后从 `env/backend.env` 删除/注释 `ADMIN_*`、`COACH_*` 四行。
+seed 后删除 production 环境文件中的 `ADMIN_*`、`COACH_*`。不要向 production 导入 trial 的会员、预约、交易、审计或微信绑定。
 
-### 6. 启动全套
+### 5. 最终流量切换
+
+先在 `yoga-edge` 内验证 `backend-prod:8000/healthz` 和 `frontend-prod:3000`，再切最终配置：
 
 ```bash
-sudo cp nginx/bootstrap.conf nginx/default.conf
-docker compose -f compose.prod.yml up -d
-docker compose -f compose.prod.yml ps
-curl -I http://yoga.tuitukj.com   # 200
+cp /srv/yoga-sys/nginx/production.conf /srv/yoga-sys/nginx/default.conf
+docker compose -f /srv/yoga-sys/compose.prod.yml exec nginx nginx -t
+docker compose -f /srv/yoga-sys/compose.prod.yml restart nginx
+
+curl https://yoga.tuitukj.com/backend/healthz
+curl https://yoga.tuitukj.com/backend-trial/healthz
+curl https://yoga.tuitukj.com/healthz
+curl https://trial.yoga.tuitukj.com/healthz
 ```
 
-### 7. 签发证书并切 HTTPS
-
-```bash
-# 注意：必须 --entrypoint certbot，否则会进入常驻续期循环而"卡住"
-docker compose -f compose.prod.yml run --rm --entrypoint certbot certbot certonly \
-  --webroot --webroot-path=/var/www/certbot \
-  --domain yoga.tuitukj.com --email <你的邮箱> --agree-tos --no-eff-email
-
-sudo cp nginx/production.conf nginx/default.conf
-sudo docker compose -f compose.prod.yml exec nginx nginx -t
-sudo docker compose -f compose.prod.yml restart nginx
-curl https://yoga.tuitukj.com/healthz   # {"status":"ok"}
-```
-
-### 8. 防火墙与验证
-
-```bash
-sudo ufw allow 22/tcp && sudo ufw allow 80/tcp && sudo ufw allow 443/tcp
-sudo ufw --force enable
-```
-
-云安全组需放行入方向 80/443。浏览器登录 `https://yoga.tuitukj.com/login` 完成业务验证。
-
-## 本次踩坑记录
-
-1. **系统自带 nginx 占用 80/443**：`ss -tlnp` 确认后执行 `sudo systemctl stop nginx && sudo systemctl disable nginx`（disable 防止重启后抢端口）。
-2. **nginx 容器 `host not found in upstream "backend"`**：容器未 join `internal` 网络，用 `docker compose up -d --force-recreate nginx` 强制重建解决。
-3. **`docker compose run certbot certonly` 卡住**：compose 服务的 entrypoint 是常驻 renew 循环，`run` 不覆盖 entrypoint；必须加 `--entrypoint certbot`。
-4. **镜像 tag 与 Git 对齐**：镜像构建必须基于已提交的 SHA；本机曾因 `latest` 镜像过期导致 compose 失效，改指日期 tag。
-
-## 升级流程
-
-```bash
-# 1. 上传并校验新包 → 解压 → docker load
-# 2. 迁移（新版本有迁移时）
-docker compose -f compose.prod.yml run --rm backend alembic upgrade head
-# 3. 更新 .env 的 YOGA_IMAGE_TAG 或 compose 镜像 tag
-# 4. 重启服务
-docker compose -f compose.prod.yml up -d backend frontend nginx
-docker compose -f compose.prod.yml ps
-# 5. 验证通过后清理旧镜像
-docker image prune
-```
-
-## 回滚与备份
-
-- **备份**：`/usr/local/bin/yoga-backup`（`operations/backup.sh` 安装），输出到 `/srv/yoga-sys/backups/`，配每日 cron 保留 30 天。
-- **恢复**：见 `operations/restore.md`，恢复前先停 backend。
-- **微信登录故障回滚**：`env/backend.env` 设 `WECHAT_AUTH_ENABLED=false` 并重启 backend，不影响网页密码登录。
-- **代码回滚**：`docker load` 上一版本 tar，换回旧 `YOGA_IMAGE_TAG` 后 `up -d`。
+业务验收必须确认 production 为空白正式数据，trial 原测试账号和数据仍完整。
 
 ## 小程序发布
 
-- 客户端 API 基址：`miniapp/miniprogram/config/environment.ts`，trial/release 为 `https://yoga.tuitukj.com/backend`。
-- 微信后台 request 合法域名：`https://yoga.tuitukj.com`（只填域名，不带路径/端口）。
-- 证书续期：`yoga-sys-certbot-1` 常驻容器每 12 小时 `renew`；可用 `docker compose run --rm --entrypoint certbot certbot renew --dry-run` 验证。
+- develop：`http://127.0.0.1:8000`
+- trial：`https://yoga.tuitukj.com/backend-trial`，允许密码切换测试账号
+- release：`https://yoga.tuitukj.com/backend`，仅微信登录
+- 微信 request 合法域名：`https://yoga.tuitukj.com`（不带路径和端口）
+
+先上传 trial 并从服务日志确认请求命中 `backend-trial`，正式小程序只有在主体、类目、隐私、资质和真机门禁完成后发布。
+
+## 升级、备份与回滚
+
+两套环境分别执行迁移和重建，禁止使用同一条未显式标明环境的运维命令。备份脚本参数和恢复核对流程见 `deploy/README.md`、`deploy/operations/restore.md`。
+
+production 切换失败时，将 Nginx 切回 `production-transition.conf` 并验证；该操作让主域网页和 `/backend` 回到 trial，不修改任何数据库。镜像回滚使用上一 tag。微信登录故障可在目标环境设置 `WECHAT_AUTH_ENABLED=false` 后只重启对应 backend，不影响 Nuxt 密码登录。
