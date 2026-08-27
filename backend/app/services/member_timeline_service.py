@@ -18,7 +18,7 @@ from app.domain.writeoff_event import WRITE_OFF_EVENT_TYPES, WriteOffEvent
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 ACTION_LABELS = {
     "purchase": "购卡", "renew": "续费", "reissue": "补卡", "refund": "退款",
-    "freeze": "冻结", "unfreeze": "解冻", "extend": "延期",
+    "freeze": "冻结", "unfreeze": "解冻", "extend": "延期", "adjust": "调整次数",
     "reserve_hold": "预约预扣", "checkin_commit": "签到实扣",
     "cancel_refund": "取消预约", "absence_commit": "缺勤处理",
 }

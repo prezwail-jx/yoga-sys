@@ -1,5 +1,5 @@
 <view class="page-shell">
-  <text class="eyebrow">Wallet</text>
+  <text class="eyebrow">会员卡包</text>
   <view class="title">我的卡项</view>
   <view class="muted">这里只展示当前余额和有效状态，不提供购买、退款、延期、冻结或解冻操作。</view>
   <async-state wx:if="{{mode !== 'ready'}}" mode="{{mode}}" message="{{message}}" bindretry="load" />
@@ -7,7 +7,7 @@
     <view wx:for="{{cards}}" wx:key="id" wx:for-item="card" class="member-pass member-pass--{{card.status}}">
       <view class="member-card__headline">
         <text class="member-pass__type">{{card.typeLabel}}</text>
-        <text class="member-card__tag">{{card.status}}</text>
+        <text class="member-card__tag">{{card.statusLabel}}</text>
       </view>
       <text class="member-pass__name">{{card.productName}}</text>
       <text class="member-pass__balance">{{card.balanceLabel}}</text>

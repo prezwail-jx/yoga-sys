@@ -10,6 +10,7 @@ def test_openapi_exposes_us1_and_us2_real_paths() -> None:
         "/card-products": {"get", "post"}, "/card-products/{product_id}": {"get", "patch"},
         "/members/me/cards": {"get"}, "/members/{memberId}/cards": {"get"}, "/transactions": {"post"},
         "/member-cards/{memberCardId}/freeze": {"post"}, "/member-cards/{memberCardId}/unfreeze": {"post"},
+        "/member-cards/{memberCardId}/adjust-times": {"post"},
         "/writeoff/events": {"post"}, "/members/{memberId}/timeline": {"get"},
         "/courses": {"get", "post"}, "/courses/{courseId}": {"get", "patch"},
         "/rooms": {"get", "post"}, "/rooms/{roomId}": {"get", "patch"},
@@ -36,7 +37,7 @@ def test_openapi_exposes_us1_and_us2_real_paths() -> None:
 def test_openapi_secured_paths_include_bearer_auth() -> None:
     schema = app.openapi()
     assert "HTTPBearer" in schema.get("components", {}).get("securitySchemes", {})
-    for path in ("/members", "/card-products", "/transactions", "/member-cards/{memberCardId}/freeze", "/member-cards/{memberCardId}/unfreeze", "/writeoff/events", "/members/{memberId}/timeline", "/courses", "/rooms", "/coaches", "/class-sessions", "/class-sessions/copy-week"):
+    for path in ("/members", "/card-products", "/transactions", "/member-cards/{memberCardId}/freeze", "/member-cards/{memberCardId}/unfreeze", "/member-cards/{memberCardId}/adjust-times", "/writeoff/events", "/members/{memberId}/timeline", "/courses", "/rooms", "/coaches", "/class-sessions", "/class-sessions/copy-week"):
         for operation in schema["paths"][path].values():
             assert operation.get("security") == [{"HTTPBearer": []}]
 
@@ -58,10 +59,17 @@ def test_specific_course_ids_are_uuid_arrays_in_card_product_contract() -> None:
 
 def test_phase4_write_operations_require_idempotency_key() -> None:
     schema = app.openapi()
-    for path in ("/transactions", "/member-cards/{memberCardId}/freeze", "/member-cards/{memberCardId}/unfreeze", "/writeoff/events"):
+    for path in ("/transactions", "/member-cards/{memberCardId}/freeze", "/member-cards/{memberCardId}/unfreeze", "/member-cards/{memberCardId}/adjust-times", "/writeoff/events"):
         parameters = schema["paths"][path]["post"].get("parameters", [])
         key = next(parameter for parameter in parameters if parameter["name"] == "Idempotency-Key")
         assert key["required"] is True
+
+
+def test_member_contract_includes_card_summaries_and_adjust_type() -> None:
+    schemas = app.openapi()["components"]["schemas"]
+    assert "cardSummaries" in schemas["MemberResponse"]["properties"]
+    transaction_types = schemas["CardTransactionResponse"]["properties"]["txnType"]["enum"]
+    assert "adjust" in transaction_types
 
 
 def test_group_class_critical_operations_require_idempotency_key() -> None:

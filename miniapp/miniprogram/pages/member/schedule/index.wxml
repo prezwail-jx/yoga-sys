@@ -1,5 +1,5 @@
 <view class="page-shell">
-  <text class="eyebrow">Weekly rhythm</text>
+  <text class="eyebrow">本周团课</text>
   <view class="title">团课日程</view>
   <view class="member-toolbar">
     <button class="member-toolbar__button" bindtap="previousWeek">上一周</button>

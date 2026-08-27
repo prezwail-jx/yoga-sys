@@ -24,7 +24,7 @@ class CreateClassSessionRequest(ApiModel):
     @model_validator(mode="after")
     def validate_time_order(self):
         if self.end_at <= self.start_at:
-            raise ValueError("endAt must be after startAt")
+            raise ValueError("endAt 必须晚于 startAt")
         return self
 
 
@@ -42,7 +42,7 @@ class UpdateClassSessionRequest(ApiModel):
     @model_validator(mode="after")
     def validate_time_order(self):
         if self.start_at is not None and self.end_at is not None and self.end_at <= self.start_at:
-            raise ValueError("endAt must be after startAt")
+            raise ValueError("endAt 必须晚于 startAt")
         return self
 
 
@@ -83,7 +83,7 @@ class CopyWeekRequest(ApiModel):
     @model_validator(mode="after")
     def validate_distinct_weeks(self):
         if self.source_week_start == self.target_week_start:
-            raise ValueError("sourceWeekStart and targetWeekStart must differ")
+            raise ValueError("sourceWeekStart 和 targetWeekStart 不能相同")
         return self
 
 

@@ -18,12 +18,28 @@
     "pages/coach/index",
     "pages/forbidden/index"
   ],
+  "subpackages": [
+    {
+      "root": "packageAdmin",
+      "name": "admin",
+      "pages": [
+        "pages/dashboard/index",
+        "pages/members/index",
+        "pages/member-detail/index",
+        "pages/products/index",
+        "pages/classes/index",
+        "pages/private/index",
+        "pages/catalog/index",
+        "pages/reports/index"
+      ]
+    }
+  ],
   "window": {
     "backgroundColor": "#f4f0e8",
     "backgroundTextStyle": "dark",
     "navigationBarBackgroundColor": "#173f35",
     "navigationBarTextStyle": "white",
-    "navigationBarTitleText": "Yoga Studio"
+    "navigationBarTitleText": "瑜伽馆服务平台"
   },
   "sitemapLocation": "sitemap.json",
   "style": "v2"

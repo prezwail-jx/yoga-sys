@@ -15,11 +15,13 @@ from app.repositories.member import MemberRepository
 from app.repositories.member_card_repository import MemberCardRepository
 from app.repositories.transaction_repository import TransactionRepository
 from app.schemas.member_card import (
+    AdjustMemberCardTimesRequest,
     FreezeMemberCardRequest,
     MemberCardListResponse,
     MemberCardResponse,
     MemberSelfCardListResponse,
     MemberSelfCardResponse,
+    TransactionOperationResponse,
     UnfreezeMemberCardRequest,
 )
 from app.services.idempotency_service import IdempotencyConflictError, IdempotencyService
@@ -107,10 +109,15 @@ def _run_idempotent(scope, memberCardId, payload, request, key, session, user, t
     service.persist(scope=scope, actor_id=user.user_id, idempotency_key=key, request_hash=request_hash, response_code=200, response_body=response)
     return response
 
-@router.post("/member-cards/{memberCardId}/freeze")
+@router.post("/member-cards/{memberCardId}/freeze", response_model=TransactionOperationResponse)
 def freeze_card(memberCardId: UUID, payload: FreezeMemberCardRequest, request: Request, idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=8, max_length=128), session: Session = Depends(get_session), user: CurrentUser = Depends(get_current_admin), today=Depends(get_business_today)):
     return _run_idempotent("member-card-freeze", memberCardId, payload, request, idempotency_key, session, user, today, lambda lifecycle: lifecycle.freeze(memberCardId, payload.frozen_until, payload.reason, today, user, idempotency_key, request.state.trace_id))
 
-@router.post("/member-cards/{memberCardId}/unfreeze")
+@router.post("/member-cards/{memberCardId}/unfreeze", response_model=TransactionOperationResponse)
 def unfreeze_card(memberCardId: UUID, payload: UnfreezeMemberCardRequest, request: Request, idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=8, max_length=128), session: Session = Depends(get_session), user: CurrentUser = Depends(get_current_admin), today=Depends(get_business_today)):
     return _run_idempotent("member-card-unfreeze", memberCardId, payload, request, idempotency_key, session, user, today, lambda lifecycle: lifecycle.unfreeze(memberCardId, today, user, idempotency_key, request.state.trace_id, payload.reason))
+
+
+@router.post("/member-cards/{memberCardId}/adjust-times", response_model=TransactionOperationResponse)
+def adjust_card_times(memberCardId: UUID, payload: AdjustMemberCardTimesRequest, request: Request, idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=8, max_length=128), session: Session = Depends(get_session), user: CurrentUser = Depends(get_current_admin), today=Depends(get_business_today)):
+    return _run_idempotent("member-card-adjust-times", memberCardId, payload, request, idempotency_key, session, user, today, lambda lifecycle: lifecycle.adjust_times(memberCardId, payload.times_delta, payload.reason, user, idempotency_key, request.state.trace_id))

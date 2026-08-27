@@ -5,6 +5,7 @@ Page({
     mode: "loading",
     message: "正在恢复你的工作台",
     accountLoginEnabled: false,
+    release: false,
     username: "",
     password: "",
     pending: false,
@@ -12,7 +13,8 @@ Page({
   },
   onLoad() {
     const accountLoginEnabled = sessionService.isPasswordLoginEnabled()
-    this.setData({ accountLoginEnabled })
+    const release = sessionService.isReleaseEnvironment()
+    this.setData({ accountLoginEnabled, release })
     if (sessionService.shouldShowLoginChoice()) {
       this.setData({ mode: "login_choice", message: "" })
       return

@@ -91,6 +91,7 @@ export interface MemberCard {
 }
 
 export interface MemberCardView extends MemberCard {
+  statusLabel: string
   typeLabel: string
   balanceLabel: string
   validityLabel: string
@@ -105,6 +106,7 @@ export interface PageResult<T> {
 }
 
 export interface ClassScheduleItem extends ClassSession {
+  statusLabel: string
   dateLabel: string
   timeLabel: string
   capacityLabel: string
@@ -115,6 +117,7 @@ export interface ClassScheduleItem extends ClassSession {
 }
 
 export interface ClassBookingView extends ClassBooking {
+  statusLabel: string
   dateLabel: string
   timeLabel: string
   canCancel: boolean
@@ -122,11 +125,13 @@ export interface ClassBookingView extends ClassBooking {
 }
 
 export interface PrivateSlotView extends PrivateSlot {
+  statusLabel: string
   dateLabel: string
   timeLabel: string
 }
 
 export interface PrivateBookingView extends PrivateBooking {
+  statusLabel: string
   dateLabel: string
   timeLabel: string
   canCancel: boolean

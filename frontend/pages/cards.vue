@@ -18,7 +18,7 @@ const newForm = (): CardProductInput => ({
   price: 0,
   costPrice: null,
   totalTimes: 10,
-  validDays: null,
+  validDays: 90,
   activationMode: "immediate",
   applicableCourseScope: "group",
   specificCourseIds: null,
@@ -56,7 +56,8 @@ function openEdit(card: CardProduct) {
 
 function normalizeByType() {
   if (form.cardType === "duration") form.totalTimes = null
-  if (form.cardType === "times" || form.cardType === "private") form.validDays ||= null
+  if (form.cardType === "times") form.validDays ||= 90
+  if (form.cardType === "private") form.validDays ||= null
 }
 
 async function saveCard() {
@@ -144,7 +145,7 @@ const scopeLabels: Record<CourseScope, string> = {
       <label>售价<input v-model.number="form.price" type="number" min="0" step="0.01" required /></label>
       <label>成本价<input v-model.number="form.costPrice" type="number" min="0" step="0.01" /></label>
       <label v-if="form.cardType !== 'duration'">总次数<input v-model.number="form.totalTimes" type="number" min="1" required /></label>
-      <label v-if="form.cardType === 'duration' || form.cardType === 'trial'">有效期（天）<input v-model.number="form.validDays" type="number" min="1" required /></label>
+      <label v-if="form.cardType === 'duration' || form.cardType === 'trial' || form.cardType === 'times'">有效期（天）<input v-model.number="form.validDays" type="number" min="1" required /></label>
       <label>开卡方式
         <select v-model="form.activationMode"><option value="immediate">购卡即开</option><option value="first_booking">首次约课</option></select>
       </label>
@@ -152,7 +153,7 @@ const scopeLabels: Record<CourseScope, string> = {
         <select v-model="form.applicableCourseScope"><option value="group">团课</option><option value="private">私教</option><option value="specific">指定课程</option></select>
       </label>
       <label v-if="form.applicableCourseScope === 'specific'" class="full-width">课程 ID（逗号分隔）
-        <input v-model="specificCourseText" required placeholder="course-001, course-002" />
+        <input v-model="specificCourseText" required placeholder="请输入课程 ID，多个用逗号分隔" />
       </label>
       <label class="checkbox-label"><input v-model="form.absenceDeductEnabled" type="checkbox" /> 缺勤扣次</label>
       <label class="checkbox-label"><input v-model="form.cancelRefundEnabled" type="checkbox" /> 取消返还</label>

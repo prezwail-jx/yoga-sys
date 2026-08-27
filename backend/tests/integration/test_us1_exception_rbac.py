@@ -36,6 +36,7 @@ def test_coach_card_product_write_is_forbidden(client, coach_headers):
             "cardType": "times",
             "price": 100,
             "totalTimes": 10,
+            "validDays": 30,
             "activationMode": "immediate",
             "applicableCourseScope": "group",
         },

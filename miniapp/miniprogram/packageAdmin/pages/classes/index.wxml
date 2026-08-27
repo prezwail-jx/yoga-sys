@@ -1,0 +1,47 @@
+<view class="page-shell">
+  <view class="admin-header"><text class="eyebrow">团课管理</text><view class="title">课表与名单</view></view>
+  <picker mode="date" value="{{weekStart}}" bindchange="week"><view class="admin-picker">查询周：{{weekStart}}</view></picker>
+  <view class="admin-form">
+    <text class="admin-card__title">复制整周课表</text>
+    <text class="admin-label">来源周</text>
+    <picker mode="date" value="{{copySourceWeek}}" data-field="copySourceWeek" bindchange="copyWeekDate"><view class="admin-picker">{{copySourceWeek}}</view></picker>
+    <text class="admin-label">目标周</text>
+    <picker mode="date" value="{{copyTargetWeek}}" data-field="copyTargetWeek" bindchange="copyWeekDate"><view class="admin-picker">{{copyTargetWeek}}</view></picker>
+    <button class="admin-button" loading="{{pendingId === 'copy-week'}}" disabled="{{pendingId}}" bindtap="copyWeek">确认复制</button>
+    <text wx:if="{{copyFeedback}}" class="admin-card__meta">{{copyFeedback}}</text>
+    <text wx:for="{{copyConflicts}}" wx:key="*this" class="admin-error">冲突：{{item}}</text>
+  </view>
+  <view class="admin-form">
+    <text class="admin-card__title">新建排课</text>
+    <picker range="{{courseNames}}" value="{{courseIndex}}" data-field="courseIndex" bindchange="chooseCatalog"><view class="admin-picker">课程：{{courseNames[courseIndex] || '请选择'}}</view></picker>
+    <picker range="{{coachNames}}" value="{{coachIndex}}" data-field="coachIndex" bindchange="chooseCatalog"><view class="admin-picker">教练：{{coachNames[coachIndex] || '请选择'}}</view></picker>
+    <picker range="{{roomNames}}" value="{{roomIndex}}" data-field="roomIndex" bindchange="chooseCatalog"><view class="admin-picker">教室：{{roomNames[roomIndex] || '请选择'}}</view></picker>
+    <button class="admin-button" disabled="{{pendingId}}" bindtap="createSession">填写时间并排课</button>
+  </view>
+  <text wx:if="{{error}}" class="admin-error">{{error}}</text>
+  <async-state wx:if="{{mode === 'loading' || mode === 'error'}}" mode="{{mode}}" message="{{message}}" bindretry="load"/>
+  <view wx:elif="{{mode === 'empty'}}" class="admin-empty">{{message}}</view>
+  <view wx:else>
+    <view wx:for="{{sessions}}" wx:key="id" class="admin-card">
+      <view class="admin-card__head"><text class="admin-card__title">{{item.courseName}}</text><text class="admin-badge">{{item.statusLabel}}</text></view>
+      <text class="admin-card__meta">{{item.startAt}} · {{item.timeLabel}}</text>
+      <text class="admin-card__meta">{{item.coachName}} · {{item.roomName}} · {{item.bookedCount}}/{{item.capacity}}</text>
+      <view class="admin-actions">
+        <button data-id="{{item.id}}" bindtap="roster">预约名单</button>
+        <button wx:if="{{item.status === 'draft'}}" data-id="{{item.id}}" data-action="publish" bindtap="transition">发布</button>
+        <button wx:if="{{item.status === 'published'}}" data-id="{{item.id}}" data-action="pause" bindtap="transition">暂停</button>
+        <button wx:if="{{item.status === 'paused'}}" data-id="{{item.id}}" data-action="resume" bindtap="transition">恢复</button>
+        <button wx:if="{{item.status === 'published' || item.status === 'paused'}}" data-id="{{item.id}}" data-action="complete" bindtap="transition">完成</button>
+        <button wx:if="{{item.status !== 'cancelled' && item.status !== 'completed'}}" data-id="{{item.id}}" data-action="cancel" bindtap="transition">取消课次</button>
+      </view>
+    </view>
+  </view>
+  <view wx:if="{{selectedId}}" class="admin-form">
+    <view class="admin-card__head"><text class="admin-card__title">预约名单</text><button class="admin-button" bindtap="adminBook">会员代约</button></view>
+    <view wx:for="{{roster}}" wx:key="id" class="admin-card">
+      <view class="admin-card__head"><text>{{item.memberName}}</text><text class="admin-badge">{{item.statusLabel}}</text></view>
+      <view class="admin-actions"><button wx:if="{{item.status === 'reserved'}}" data-id="{{item.id}}" data-action="check" bindtap="bookingAction">签到</button><button wx:if="{{item.status === 'reserved'}}" data-id="{{item.id}}" data-action="cancel" bindtap="bookingAction">取消预约</button></view>
+    </view>
+    <view wx:if="{{!roster.length}}" class="admin-empty">暂无预约</view>
+  </view>
+</view>

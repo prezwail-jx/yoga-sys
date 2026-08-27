@@ -22,15 +22,27 @@ const COACH_NAVIGATION: NavigationItem[] = [
   { id: "private-requests", label: "私教申请", description: "确认待处理请求", path: "/pages/coach/workload/index" },
 ]
 
+const ADMIN_NAVIGATION: NavigationItem[] = [
+  { id: "admin-dashboard", label: "运营概览", description: "经营指标与今日工作入口", path: "/packageAdmin/pages/dashboard/index" },
+  { id: "admin-members", label: "会员与卡项", description: "会员资料、持卡摘要和卡项办理", path: "/packageAdmin/pages/members/index" },
+  { id: "admin-products", label: "卡产品", description: "卡产品新建、编辑与启停", path: "/packageAdmin/pages/products/index" },
+  { id: "admin-classes", label: "团课管理", description: "排课、课次状态和预约名单", path: "/packageAdmin/pages/classes/index" },
+  { id: "admin-private", label: "私教管理", description: "私教时段与预约处理", path: "/packageAdmin/pages/private/index" },
+  { id: "admin-catalog", label: "基础资料", description: "课程、教室、教练及账号", path: "/packageAdmin/pages/catalog/index" },
+  { id: "admin-reports", label: "统计报表", description: "筛选查看趋势和业务明细", path: "/packageAdmin/pages/reports/index" },
+]
+
 export function navigationForRole(role: BusinessRole): NavigationItem[] {
-  return role === "member" ? MEMBER_NAVIGATION : COACH_NAVIGATION
+  if (role === "member") return MEMBER_NAVIGATION
+  if (role === "coach") return COACH_NAVIGATION
+  return ADMIN_NAVIGATION
 }
 
 export class NavigationService {
   constructor(private readonly runtime: MiniProgramRuntime) {}
 
   routeAuthenticated(user: CurrentUser): void {
-    if (user.role !== "member" && user.role !== "coach") {
+    if (user.role !== "member" && user.role !== "coach" && user.role !== "admin") {
       this.routeForbidden()
       return
     }

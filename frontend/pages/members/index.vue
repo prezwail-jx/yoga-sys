@@ -2,7 +2,7 @@
 import type { AccountBindingInput, Member, MemberInput, MemberStatus, PasswordResetInput } from "~/types/domain"
 import { accountOpeningError, isUsernameConflict, memberAccountPresentation, passwordValidationError, wechatBindingPresentation } from "~/utils/accountManagement"
 import { getApiErrorMessage } from "~/utils/errors"
-import { memberStatusLabels } from "~/utils/labels"
+import { memberCardStatusLabels, memberStatusLabels } from "~/utils/labels"
 
 definePageMeta({ middleware: "require-admin" })
 
@@ -222,12 +222,21 @@ async function resetPassword() {
     <CommonAsyncState :status="status" :empty="!data?.items.length" pending-text="正在加载会员…" empty-text="暂无符合条件的会员" :error-message="error?.statusMessage || '会员加载失败'" @retry="refresh">
     <div class="table-wrap">
       <table>
-        <thead><tr><th>姓名</th><th>手机号</th><th>状态</th><th>账号状态</th><th>入会日期</th><th>操作</th></tr></thead>
+        <thead><tr><th>姓名</th><th>手机号</th><th>状态</th><th>持有卡项</th><th>账号状态</th><th>入会日期</th><th>操作</th></tr></thead>
         <tbody>
           <tr v-for="member in data?.items || []" :key="member.id">
             <td>{{ member.name }}</td>
             <td>{{ member.phone }}</td>
             <td><span class="status-badge">{{ memberStatusLabels[member.status] }}</span></td>
+            <td>
+              <div v-if="member.cardSummaries?.length" class="card-summary-list">
+                <div v-for="card in member.cardSummaries" :key="card.id" :class="['card-summary', { 'is-muted': card.status === 'expired' || card.status === 'closed' }]">
+                  <strong>{{ card.productName }}</strong>
+                  <span>{{ memberCardStatusLabels[card.status] }} · {{ card.remainingTimes === null ? "不限次" : `剩余 ${card.remainingTimes} 次` }} · {{ card.expiresOn ? `${card.expiresOn} 到期` : "暂无到期日" }}</span>
+                </div>
+              </div>
+              <span v-else class="hint">暂无卡项</span>
+            </td>
             <td>
               <div class="account-status">
                 <span :class="['account-badge', member.hasAccount ? 'is-open' : 'is-closed']">{{ memberAccountPresentation(member.hasAccount).label }}</span>
@@ -237,6 +246,7 @@ async function resetPassword() {
             <td>{{ member.joinDate }}</td>
             <td class="actions primary-actions">
               <button type="button" @click="openAccount(member)">业务管理</button>
+              <NuxtLink class="button-primary record-link" :to="{ path: '/transactions', query: { memberId: member.id } }">管理卡项</NuxtLink>
               <NuxtLink class="button-primary record-link" :to="`/members/${member.id}/timeline`">业务记录</NuxtLink>
             </td>
           </tr>
@@ -329,6 +339,11 @@ async function resetPassword() {
 .account-badge.is-open { color: #174e91; background: #e6f0ff; border: 1px solid #a9c9f7; }
 .account-badge.is-closed { color: #59636e; background: #eef0f2; border: 1px solid #d3d7dc; }
 .account-username { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.card-summary-list { display: grid; gap: 6px; min-width: 220px; }
+.card-summary { display: grid; gap: 2px; padding: 7px 9px; border: 1px solid var(--border); border-radius: 8px; background: #f8fbf9; }
+.card-summary strong { font-size: 13px; }
+.card-summary span { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.card-summary.is-muted { opacity: .58; background: #f2f2f2; }
 .button-primary { display: inline-flex; align-items: center; padding: 9px 14px; color: #fff; background: var(--brand); border-radius: 10px; text-decoration: none; }
 .primary-actions { flex-wrap: nowrap; }
 .management-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }

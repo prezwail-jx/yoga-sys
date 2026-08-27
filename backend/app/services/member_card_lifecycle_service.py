@@ -74,6 +74,22 @@ class MemberCardLifecycleService:
     def unfreeze(self, card_id: UUID, today: date, user: CurrentUser, key: str, trace_id: str, reason: str | None):
         return self._unfreeze(self._card(card_id), today=today, user=user, key=key, trace_id=trace_id, reason=reason)
 
+    def adjust_times(self, card_id: UUID, times_delta: int, reason: str, user: CurrentUser, key: str, trace_id: str):
+        card = self._card(card_id)
+        if card.remaining_times is None:
+            raise HTTPException(status_code=409, detail="仅计次卡可调整剩余次数")
+        remaining_times = card.remaining_times + times_delta
+        if remaining_times < 0:
+            raise HTTPException(status_code=409, detail="调整后剩余次数不能小于 0")
+        before = card_state(card)
+        card.remaining_times = remaining_times
+        self.card_repo.update(card)
+        transaction = self.transactions._transaction(
+            txn_type="adjust", card=card, user=user, key=key, trace_id=trace_id,
+            before=before, amount=Decimal("0.00"), times_delta=times_delta, reason=reason,
+        )
+        return transaction, card
+
     def extend(self, request: CreateTransactionRequest, today: date, user: CurrentUser, key: str, trace_id: str):
         self.transactions._member(request.member_id)
         card = self.reconcile_card(self._card(request.member_card_id, member_id=request.member_id), today, trace_id)

@@ -9,11 +9,14 @@ const emit = defineEmits<{
   extend: [payload: { card: MemberCard; days: number; reason: string }]
   freeze: [payload: { card: MemberCard; until: string; reason: string }]
   unfreeze: [payload: { card: MemberCard; reason: string }]
+  adjust: [payload: { card: MemberCard; timesDelta: number; reason: string }]
 }>()
 const extendDays = ref(7)
 const extendReason = ref("")
 const frozenUntil = ref("")
 const freezeReason = ref("")
+const timesDelta = ref<number | null>(null)
+const adjustReason = ref("")
 const statusLabels: Record<MemberCard["status"], string> = { pending_activation: "待首次约课开卡", active: "使用中", frozen: "冻结中", expired: "已过期", closed: "已关闭" }
 </script>
 
@@ -47,5 +50,14 @@ const statusLabels: Record<MemberCard["status"], string> = { pending_activation:
       <input v-model="freezeReason" placeholder="提前解冻原因（可选）" />
       <button class="button-secondary" type="button" :disabled="pending" @click="emit('unfreeze', { card, reason: freezeReason })">提前解冻</button>
     </div>
+    <div v-if="card.remainingTimes !== null" class="toolbar adjustment-toolbar">
+      <input v-model.number="timesDelta" type="number" step="1" placeholder="增减次数，如 2 或 -1" />
+      <input v-model="adjustReason" maxlength="255" placeholder="调整原因（必填）" />
+      <button class="button-secondary" type="button" :disabled="pending || !timesDelta || !Number.isInteger(Number(timesDelta)) || !adjustReason.trim()" @click="emit('adjust', { card, timesDelta: Number(timesDelta), reason: adjustReason.trim() })">调整次数</button>
+    </div>
   </article>
 </template>
+
+<style scoped>
+.adjustment-toolbar { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
+</style>

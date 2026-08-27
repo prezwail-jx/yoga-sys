@@ -1,0 +1,46 @@
+<view class="page-shell">
+  <async-state wx:if="{{mode !== 'ready'}}" mode="{{mode}}" message="{{message}}" bindretry="load"/>
+  <block wx:else>
+    <view class="admin-header"><text class="eyebrow">会员详情</text><view class="title">{{member.name}}</view><view class="muted">{{member.phone}} · {{member.statusLabel}}</view></view>
+    <view class="admin-card">
+      <view class="admin-card__head"><text class="admin-card__title">会员资料</text><button class="admin-button admin-button--light" bindtap="toggleProfileForm">{{showProfileForm ? '收起编辑' : '编辑资料'}}</button></view>
+      <text class="admin-card__meta">手机号：{{member.phone}}（后端不支持修改）</text>
+      <text class="admin-card__meta">入会日期：{{member.joinDate}}（后端不支持修改）</text>
+      <text class="admin-card__meta">生日：{{member.birthday || '未设置'}}</text>
+      <text class="admin-card__meta">紧急联系人：{{member.emergencyContact || '未设置'}}</text>
+      <text class="admin-card__meta">备注：{{member.note || '无'}}</text>
+    </view>
+    <view wx:if="{{showProfileForm}}" class="admin-form">
+      <text class="admin-card__title">编辑会员资料</text>
+      <text class="admin-label">姓名</text><input class="admin-input" data-field="name" value="{{profileForm.name}}" bindinput="profileField" maxlength="50"/>
+      <text class="admin-label">性别</text><picker range="{{genderNames}}" value="{{genderIndex}}" bindchange="profileGender"><view class="admin-picker">{{genderNames[genderIndex]}}</view></picker>
+      <text class="admin-label">生日</text><picker mode="date" value="{{profileForm.birthday}}" bindchange="profileBirthday"><view class="admin-picker">{{profileForm.birthday || '请选择生日'}}</view></picker><button wx:if="{{profileForm.birthday}}" class="admin-button admin-button--light" bindtap="clearBirthday">清除生日</button>
+      <text class="admin-label">紧急联系人</text><input class="admin-input" data-field="emergencyContact" value="{{profileForm.emergencyContact}}" bindinput="profileField" maxlength="100" placeholder="姓名及联系电话"/>
+      <text class="admin-label">备注</text><textarea class="admin-input admin-textarea" data-field="note" value="{{profileForm.note}}" bindinput="profileField" maxlength="4000" placeholder="会员备注"/>
+      <button class="admin-button" loading="{{pendingId === 'profile'}}" disabled="{{pendingId}}" bindtap="saveProfile">保存资料</button>
+    </view>
+    <view class="admin-card">
+      <view class="admin-card__head"><text class="admin-card__title">会员状态</text><text class="admin-badge">{{member.statusLabel}}</text></view>
+      <view class="admin-actions"><button data-status="normal" bindtap="setStatus">正常</button><button data-status="paused" bindtap="setStatus">暂停</button><button data-status="expired" bindtap="setStatus">过期</button><button data-status="disabled" bindtap="setStatus">停用</button></view>
+      <button wx:if="{{!member.hasAccount}}" class="admin-button admin-button--light" bindtap="createAccount">开通登录账号</button>
+      <view wx:else><text class="admin-card__meta">登录账号：{{member.username}}</text><button class="admin-button admin-button--light" bindtap="resetPassword">重置会员密码</button></view>
+    </view>
+    <view class="admin-form">
+      <text class="admin-card__title">办理新卡</text>
+      <picker range="{{productNames}}" value="{{productIndex}}" bindchange="chooseProduct"><view class="admin-picker">{{productNames[productIndex] || '暂无启用的卡产品'}}</view></picker>
+      <button class="admin-button" disabled="{{pendingId || !products.length}}" bindtap="purchase">确认购卡</button>
+    </view>
+    <text wx:if="{{error}}" class="admin-error">{{error}}</text>
+    <view wx:for="{{cards}}" wx:key="id" class="admin-card">
+      <view class="admin-card__head"><text class="admin-card__title">{{item.productName}}</text><text class="admin-badge">{{item.statusLabel}}</text></view>
+      <text class="admin-card__meta">{{item.typeLabel}} · {{item.balanceLabel}} · 到期 {{item.expiresOn || '待激活'}}</text>
+      <view class="admin-actions"><button data-id="{{item.id}}" data-action="renew" bindtap="cardAction">续费</button><button data-id="{{item.id}}" data-action="reissue" bindtap="cardAction">补卡</button><button data-id="{{item.id}}" data-action="refund" bindtap="cardAction">退款</button><button data-id="{{item.id}}" data-action="extend" bindtap="cardAction">延期</button><button wx:if="{{item.status !== 'frozen'}}" data-id="{{item.id}}" data-action="freeze" bindtap="cardAction">冻结</button><button wx:else data-id="{{item.id}}" data-action="unfreeze" bindtap="cardAction">解冻</button><button wx:if="{{item.remainingTimes !== null}}" data-id="{{item.id}}" data-action="adjust" bindtap="cardAction">调整次数</button></view>
+    </view>
+    <view wx:if="{{!cards.length}}" class="admin-empty">该会员暂无卡项</view>
+    <view class="admin-form">
+      <text class="admin-card__title">近期业务时间线</text>
+      <view wx:for="{{timeline}}" wx:key="id" class="admin-card"><text class="admin-card__meta">{{item.occurredAt}}</text><text class="admin-card__meta">{{item.summary}}</text><text wx:if="{{item.reason}}" class="admin-card__meta">原因：{{item.reason}}</text></view>
+      <view wx:if="{{!timeline.length}}" class="admin-empty">暂无业务记录</view>
+    </view>
+  </block>
+</view>

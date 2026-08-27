@@ -19,6 +19,11 @@ const CARD_TYPE_LABELS: Record<MemberCard["cardType"], string> = {
   private: "私教卡",
   trial: "体验卡",
 }
+const CARD_STATUS_LABELS = { pending_activation: "待激活", active: "使用中", frozen: "已冻结", expired: "已过期", closed: "已关闭" } as const
+const SESSION_STATUS_LABELS = { draft: "草稿", published: "已发布", paused: "已暂停", cancelled: "已取消", completed: "已完成" } as const
+const BOOKING_STATUS_LABELS = { reserved: "已预约", checked_in: "已签到", cancelled: "已取消", absent: "缺席" } as const
+const PRIVATE_STATUS_LABELS = { pending: "待确认", confirmed: "已确认", rejected: "已拒绝", cancelled: "已取消", completed: "已完成" } as const
+const SLOT_STATUS_LABELS = { available: "可预约", locked: "已占用", cancelled: "已取消" } as const
 const SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1000
 
 function pad(value: number): string {
@@ -84,6 +89,7 @@ export function groupClassSchedule(sessions: ClassSession[], bookings: ClassBook
       const canBook = session.status === "published" && !session.isFull && !booking
       return {
         ...session,
+        statusLabel: SESSION_STATUS_LABELS[session.status],
         dateLabel: dateLabel(session.startAt),
         timeLabel: timeLabel(session.startAt, session.endAt),
         capacityLabel: `${session.bookedCount}/${session.capacity}`,
@@ -113,6 +119,7 @@ export function classBookingView(booking: ClassBooking, session: ClassSession | 
         : "已超过可取消时间"
   return {
     ...booking,
+    statusLabel: BOOKING_STATUS_LABELS[booking.status],
     dateLabel: dateLabel(booking.startAt),
     timeLabel: timeLabel(booking.startAt, booking.endAt),
     canCancel,
@@ -123,6 +130,7 @@ export function classBookingView(booking: ClassBooking, session: ClassSession | 
 export function privateSlotGroups(slots: PrivateSlot[]): DayGroup<PrivateSlotView>[] {
   return groupByDay(slots.map((slot) => ({
     ...slot,
+    statusLabel: SLOT_STATUS_LABELS[slot.status],
     dateLabel: dateLabel(slot.startAt),
     timeLabel: timeLabel(slot.startAt, slot.endAt),
   })))
@@ -131,6 +139,7 @@ export function privateSlotGroups(slots: PrivateSlot[]): DayGroup<PrivateSlotVie
 export function privateBookingView(booking: PrivateBooking): PrivateBookingView {
   return {
     ...booking,
+    statusLabel: PRIVATE_STATUS_LABELS[booking.status],
     dateLabel: dateLabel(booking.startAt),
     timeLabel: timeLabel(booking.startAt, booking.endAt),
     canCancel: booking.status === "pending",
@@ -140,6 +149,7 @@ export function privateBookingView(booking: PrivateBooking): PrivateBookingView 
 export function memberCardView(card: MemberCard): MemberCardView {
   return {
     ...card,
+    statusLabel: CARD_STATUS_LABELS[card.status],
     typeLabel: CARD_TYPE_LABELS[card.cardType],
     balanceLabel: card.remainingTimes === null ? "按有效期使用" : `剩余 ${card.remainingTimes} 次`,
     validityLabel: card.openedOn || card.expiresOn

@@ -55,4 +55,29 @@ describe("ApiClient", () => {
       kind: "conflict", statusCode: 409, message: "Already bound",
     })
   })
+
+  it("downloads an authenticated report to a temporary file and opens it", async () => {
+    const runtime = new FakeRuntime()
+    const api = new ApiClient(runtime, "https://api.example.test", () => "admin-token", vi.fn())
+
+    await expect(api.downloadAndOpen("/reports/export?category=transactions")).resolves.toBeUndefined()
+
+    expect(runtime.downloads).toHaveLength(1)
+    expect(runtime.downloads[0].url).toBe("https://api.example.test/reports/export?category=transactions")
+    expect(runtime.downloads[0].header.Authorization).toBe("Bearer admin-token")
+    expect(runtime.downloads[0].timeout).toBe(30_000)
+    expect(runtime.openedDocuments[0]).toMatchObject({ filePath: "/tmp/report.xlsx", fileType: "xlsx", showMenu: true })
+    expect(JSON.stringify(runtime.logs)).not.toContain("admin-token")
+  })
+
+  it("reports download and temporary-file preview failures in Chinese", async () => {
+    const runtime = new FakeRuntime()
+    const api = new ApiClient(runtime, "https://api.example.test", () => "admin-token", vi.fn())
+    runtime.downloadHandler = options => options.fail({ errMsg: "downloadFile:fail timeout" })
+    await expect(api.downloadAndOpen("/reports/export?category=refunds")).rejects.toMatchObject({ kind: "timeout", message: "报表下载超时，请稍后重试" })
+
+    runtime.downloadHandler = options => options.success({ tempFilePath: "/tmp/report.xlsx", statusCode: 200 })
+    runtime.openDocumentHandler = options => options.fail({ errMsg: "openDocument:fail file format" })
+    await expect(api.downloadAndOpen("/reports/export?category=refunds")).rejects.toMatchObject({ message: expect.stringContaining("无法打开临时文件") })
+  })
 })

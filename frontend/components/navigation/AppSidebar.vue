@@ -18,7 +18,7 @@ const emit = defineEmits<{ close: []; logout: [] }>()
   <aside :class="['app-sidebar', { 'is-mobile': mobile }]">
     <div class="sidebar-brand-row">
       <div>
-        <div class="brand">Yoga SYS</div>
+        <div class="brand">瑜伽馆管理系统</div>
         <p class="brand-sub">会员约课与运营中台</p>
       </div>
       <button v-if="mobile" class="sidebar-close" type="button" aria-label="关闭导航" @click="emit('close')">

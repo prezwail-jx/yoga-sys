@@ -1,5 +1,5 @@
 <view class="page-shell">
-  <text class="eyebrow">One to one</text>
+  <text class="eyebrow">一对一私教</text>
   <view class="title">私教预约</view>
   <view wx:if="{{pendingBookings.length}}" class="panel">
     <view class="member-card__headline">

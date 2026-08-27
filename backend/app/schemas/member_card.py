@@ -3,12 +3,12 @@ from decimal import Decimal
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
 from app.schemas.base import ApiModel
 
 CardStatus = Literal["pending_activation", "active", "frozen", "expired", "closed"]
-TransactionType = Literal["purchase", "renew", "reissue", "refund", "freeze", "unfreeze", "extend"]
+TransactionType = Literal["purchase", "renew", "reissue", "refund", "freeze", "unfreeze", "extend", "adjust"]
 
 class MemberCardResponse(ApiModel):
     id: UUID
@@ -72,14 +72,14 @@ class CreateTransactionRequest(ApiModel):
     def validate_shape(self):
         if self.txn_type == "purchase":
             if self.card_product_id is None or self.member_card_id is not None:
-                raise ValueError("purchase requires cardProductId only")
+                raise ValueError("购卡只能填写 cardProductId")
         else:
             if self.member_card_id is None:
-                raise ValueError(f"{self.txn_type} requires memberCardId")
+                raise ValueError("当前交易必须填写 memberCardId")
         if self.txn_type == "refund" and self.origin_transaction_id is None:
-            raise ValueError("refund requires originTransactionId")
+            raise ValueError("退款必须填写 originTransactionId")
         if self.txn_type == "extend" and self.valid_days_delta is None:
-            raise ValueError("extend requires validDaysDelta")
+            raise ValueError("延期必须填写 validDaysDelta")
         return self
 
 class MemberSelfCardResponse(ApiModel):
@@ -112,3 +112,25 @@ class FreezeMemberCardRequest(ApiModel):
 
 class UnfreezeMemberCardRequest(ApiModel):
     reason: str | None = Field(None, max_length=255)
+
+
+class AdjustMemberCardTimesRequest(ApiModel):
+    times_delta: int = Field(strict=True)
+    reason: str = Field(max_length=255)
+
+    @field_validator("times_delta", mode="before")
+    @classmethod
+    def validate_times_delta(cls, value):
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise ValueError("timesDelta 必须是整数")
+        if value == 0:
+            raise ValueError("timesDelta 不能为 0")
+        return value
+
+    @field_validator("reason")
+    @classmethod
+    def validate_reason(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("reason 不能为空")
+        return value

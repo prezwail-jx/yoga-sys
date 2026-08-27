@@ -1,5 +1,5 @@
 <view class="page-shell">
-  <text class="eyebrow">Session</text>
+  <text class="eyebrow">账号中心</text>
   <view class="title">账号与会话</view>
   <view class="panel account-card">
     <text class="account-card__role">{{roleLabel}}</text>
@@ -7,6 +7,6 @@
     <text class="muted">登录身份和业务权限均由服务器确认。</text>
     <button class="account-card__security" bindtap="security">修改登录密码</button>
     <button class="primary-button" bindtap="logout">退出登录</button>
-    <text class="account-card__hint">退出不会解除微信绑定。下次可直接通过微信重新登录。</text>
+    <text class="account-card__hint">管理员退出后需使用账号密码重新登录；会员和教练退出不会解除微信绑定。</text>
   </view>
 </view>

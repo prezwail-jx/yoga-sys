@@ -1,8 +1,8 @@
 <view class="page-shell">
-  <text class="eyebrow">Private work</text>
+  <text class="eyebrow">私教工作</text>
   <view class="title">私教申请</view>
   <scroll-view scroll-x class="coach-tabs">
-    <button wx:for="{{statuses}}" wx:key="*this" class="coach-tab {{status === item ? 'coach-tab--active' : ''}}" data-status="{{item}}" bindtap="switchStatus">{{item}}</button>
+    <button wx:for="{{statusTabs}}" wx:key="value" class="coach-tab {{status === item.value ? 'coach-tab--active' : ''}}" data-status="{{item.value}}" bindtap="switchStatus">{{item.label}}</button>
   </scroll-view>
   <view wx:if="{{feedback}}" class="coach-feedback">{{feedback}}</view>
   <async-state wx:if="{{mode !== 'ready'}}" mode="{{mode}}" message="{{message}}" bindretry="load" />

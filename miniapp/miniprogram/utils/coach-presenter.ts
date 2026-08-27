@@ -2,6 +2,9 @@ import type { ClassBooking, ClassSession, DayGroup, PrivateBooking, PrivateBooki
 import type { CoachScheduleItem, RosterBooking } from "../types/coach"
 import { dateKey, dateLabel, privateBookingView, timeLabel } from "./member-presenter"
 
+const SESSION_STATUS_LABELS = { draft: "草稿", published: "已发布", paused: "已暂停", cancelled: "已取消", completed: "已完成" } as const
+const BOOKING_STATUS_LABELS = { reserved: "已预约", checked_in: "已签到", cancelled: "已取消", absent: "缺席" } as const
+
 function groupByDay(items: CoachScheduleItem[]): DayGroup<CoachScheduleItem>[] {
   const groups = new Map<string, DayGroup<CoachScheduleItem>>()
   for (const item of [...items].sort((left, right) => left.startAt.localeCompare(right.startAt))) {
@@ -16,6 +19,7 @@ function groupByDay(items: CoachScheduleItem[]): DayGroup<CoachScheduleItem>[] {
 export function assignedSchedule(sessions: ClassSession[]): DayGroup<CoachScheduleItem>[] {
   return groupByDay(sessions.map((session) => ({
     ...session,
+    statusLabel: SESSION_STATUS_LABELS[session.status],
     dateLabel: dateLabel(session.startAt),
     timeLabel: timeLabel(session.startAt, session.endAt),
     capacityLabel: `${session.bookedCount}/${session.capacity}`,
@@ -38,7 +42,7 @@ export function rosterBooking(
       : now < opensAt
         ? "开课前 30 分钟开放签到"
         : "可签到"
-  return { ...booking, canCheckIn, checkInMessage }
+  return { ...booking, statusLabel: BOOKING_STATUS_LABELS[booking.status], canCheckIn, checkInMessage }
 }
 
 export function workloadBooking(booking: PrivateBooking): PrivateBookingView {

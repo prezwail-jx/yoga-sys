@@ -19,6 +19,14 @@ export const cardTypeLabels: Record<string, string> = {
   trial: "体验卡",
 }
 
+export const memberCardStatusLabels: Record<string, string> = {
+  pending_activation: "待激活",
+  active: "使用中",
+  frozen: "冻结中",
+  expired: "已过期",
+  closed: "已关闭",
+}
+
 export const userRoleLabels: Record<string, string> = {
   admin: "管理员",
   coach: "教练",

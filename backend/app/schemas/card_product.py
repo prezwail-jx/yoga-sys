@@ -28,13 +28,15 @@ class CreateCardProductRequest(ApiModel):
     @model_validator(mode="after")
     def validate_rules(self):
         if self.card_type == "duration" and self.valid_days is None:
-            raise ValueError("duration card requires validDays")
+            raise ValueError("期限卡必须填写 validDays")
         if self.card_type in {"times", "private"} and self.total_times is None:
-            raise ValueError(f"{self.card_type} card requires totalTimes")
+            raise ValueError("次数卡必须填写 totalTimes")
+        if self.card_type == "times" and self.valid_days is None:
+            raise ValueError("次数卡必须填写 validDays")
         if self.card_type == "trial" and self.total_times is None and self.valid_days is None:
-            raise ValueError("trial card requires totalTimes or validDays")
+            raise ValueError("体验卡必须填写 totalTimes 或 validDays")
         if self.applicable_course_scope == "specific" and not self.specific_course_ids:
-            raise ValueError("specific course scope requires specificCourseIds")
+            raise ValueError("指定课程范围必须填写 specificCourseIds")
         return self
 
 

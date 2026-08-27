@@ -1,5 +1,5 @@
 <view class="page-shell">
-  <text class="eyebrow">Assigned</text>
+  <text class="eyebrow">我的排课</text>
   <view class="title">我的团课</view>
   <view class="coach-toolbar">
     <button class="coach-button coach-button--secondary" bindtap="previousWeek">上一周</button>
@@ -13,7 +13,7 @@
       <view wx:for="{{group.items}}" wx:key="id" wx:for-item="session" class="coach-card">
         <text class="coach-card__title">{{session.courseName}}</text>
         <text class="coach-card__meta">{{session.timeLabel}} · {{session.roomName}}</text>
-        <text class="coach-card__meta">状态 {{session.status}} · 到课 {{session.capacityLabel}}</text>
+        <text class="coach-card__meta">状态 {{session.statusLabel}} · 到课 {{session.capacityLabel}}</text>
         <button class="coach-button" data-id="{{session.id}}" bindtap="roster">查看名册</button>
       </view>
     </view>

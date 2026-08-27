@@ -124,32 +124,75 @@ describe("SessionService", () => {
     expect(JSON.stringify([...runtime.storage.entries()])).not.toContain("password123")
   })
 
-  it("rejects administrator credentials from Mini Program password login", async () => {
+  it("accepts administrator credentials in trial without creating a WeChat binding", async () => {
     const runtime = new FakeRuntime()
     runtime.envVersion = "trial"
     const { storage, session } = services(runtime)
-    runtime.requestHandler = (options) => options.success({
-      data: { access_token: "admin-token", token_type: "bearer", role: "admin" },
-      statusCode: 200,
-      header: {},
-    })
+    runtime.requestHandler = (options) => options.success({ data: options.url.endsWith("/auth/login") ? { access_token: "admin-token", token_type: "bearer", role: "admin" } : { username: "admin", role: "admin" }, statusCode: 200, header: {} })
 
-    await expect(session.passwordLoginAndRoute("admin", "password123")).rejects.toMatchObject({
-      kind: "authorization",
-    })
-    expect(storage.token()).toBeNull()
-    expect(storage.authMode()).toBeNull()
+    await expect(session.passwordLoginAndRoute("admin", "password123")).resolves.toMatchObject({ role: "admin" })
+    expect(storage.token()).toBe("admin-token")
+    expect(storage.authMode()).toBe("password")
   })
 
-  it("disables credential login in release builds", async () => {
+  it("rejects release member credentials before persisting their token", async () => {
     const runtime = new FakeRuntime()
     runtime.envVersion = "release"
-    const { session } = services(runtime)
+    const { storage, session } = services(runtime)
+    runtime.requestHandler = (options) => options.success({ data: { access_token: "member-token", token_type: "bearer", role: "member" }, statusCode: 200, header: {} })
 
     await expect(session.passwordLoginAndRoute("member", "password123")).rejects.toMatchObject({
       kind: "authorization",
     })
-    expect(runtime.requests).toHaveLength(0)
+    expect(runtime.requests).toHaveLength(1)
+    expect(storage.token()).toBeNull()
+    expect(storage.authMode()).toBeNull()
+  })
+
+  it("accepts release administrator credentials and validates /auth/me before saving token", async () => {
+    const runtime = new FakeRuntime(); runtime.envVersion = "release"
+    const { storage, session } = services(runtime)
+    storage.setAuthMode("wechat")
+    runtime.requestHandler = (options) => options.success({ data: options.url.endsWith("/auth/login") ? { access_token: "admin-token", token_type: "bearer", role: "admin" } : { username: "admin", role: "admin" }, statusCode: 200, header: {} })
+    await expect(session.passwordLoginAndRoute("admin", "password123")).resolves.toMatchObject({ role: "admin" })
+    expect(storage.token()).toBe("admin-token")
+    expect(runtime.requests[1].header.Authorization).toBe("Bearer admin-token")
+  })
+
+  it("rejects a stored release password session when it belongs to a member", async () => {
+    const runtime = new FakeRuntime(); runtime.envVersion = "release"
+    const { storage, session } = services(runtime)
+    storage.setToken("legacy-member-token")
+    storage.setAuthMode("password")
+    runtime.requestHandler = (options) => options.success({ data: { username: "member", role: "member", memberId: "member-1" }, statusCode: 200, header: {} })
+
+    await expect(session.bootstrap()).rejects.toMatchObject({ kind: "authorization" })
+    expect(storage.token()).toBeNull()
+    expect(storage.authMode()).toBeNull()
+    expect(storage.isSignedOut()).toBe(true)
+    expect(runtime.loginCalls).toBe(0)
+  })
+
+  it("returns an expired administrator password session to password login instead of WeChat", async () => {
+    const runtime = new FakeRuntime(); runtime.envVersion = "release"
+    const { storage, session } = services(runtime)
+    storage.setToken("expired-admin-token")
+    storage.setAuthMode("password")
+    runtime.requestHandler = (options) => options.success({ data: { detail: "令牌已过期" }, statusCode: 401, header: {} })
+
+    await expect(session.bootstrap()).rejects.toMatchObject({ kind: "authentication" })
+    expect(storage.token()).toBeNull()
+    expect(storage.authMode()).toBeNull()
+    expect(storage.isSignedOut()).toBe(true)
+    expect(runtime.loginCalls).toBe(0)
+  })
+
+  it("rejects an administrator returned by WeChat login without saving its token", async () => {
+    const runtime = new FakeRuntime()
+    const { storage, session } = services(runtime)
+    runtime.requestHandler = (options) => options.success({ data: { state: "bound", accessToken: "wechat-admin-token", tokenType: "bearer", role: "admin" }, statusCode: 200, header: {} })
+    await expect(session.loginAndRoute()).rejects.toMatchObject({ kind: "authorization" })
+    expect(storage.token()).toBeNull()
   })
 
   it("returns expired password sessions to login choice without changing WeChat recovery", () => {

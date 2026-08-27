@@ -9,12 +9,14 @@ import type {
 } from "./member"
 
 export interface CoachScheduleItem extends ClassSession {
+  statusLabel: string
   dateLabel: string
   timeLabel: string
   capacityLabel: string
 }
 
 export interface RosterBooking extends ClassBooking {
+  statusLabel: string
   canCheckIn: boolean
   checkInMessage: string
 }

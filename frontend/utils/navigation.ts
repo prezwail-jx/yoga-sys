@@ -72,5 +72,5 @@ export function getPageContext(path: string, role?: string): { group: string; ti
       return { group: group.label, title, description: item.description }
     }
   }
-  return { group: "工作台", title: "Yoga SYS", description: "瑜伽馆日常经营与预约管理" }
+  return { group: "工作台", title: "瑜伽馆管理系统", description: "瑜伽馆日常经营与预约管理" }
 }

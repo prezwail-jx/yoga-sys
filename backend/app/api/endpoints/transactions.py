@@ -22,7 +22,7 @@ def operation_body(transaction, card, today):
     card_data = MemberCardResponse.model_validate(card).model_copy(update={"expiring_soon": card.status == "active" and card.remind_on is not None and card.remind_on <= today <= card.expires_on, "refundable_transaction_id": refundable})
     return TransactionOperationResponse(transaction=transaction, member_card=card_data).model_dump(mode="json", by_alias=True)
 
-@router.post("/transactions")
+@router.post("/transactions", response_model=TransactionOperationResponse)
 def create_transaction(payload: CreateTransactionRequest, request: Request, idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=8, max_length=128), session: Session = Depends(get_session), user: CurrentUser = Depends(get_current_admin), today=Depends(get_business_today)):
     idempotency = IdempotencyService(session)
     request_body = payload.model_dump(mode="json", exclude_none=True)

@@ -24,6 +24,22 @@ export interface LoginOptions {
   fail: (error: { errMsg: string }) => void
 }
 
+export interface DownloadFileOptions {
+  url: string
+  header: Record<string, string>
+  timeout: number
+  success: (result: { tempFilePath: string; statusCode: number }) => void
+  fail: (error: RequestFailure) => void
+}
+
+export interface OpenDocumentOptions {
+  filePath: string
+  fileType?: string
+  showMenu?: boolean
+  success: () => void
+  fail: (error: RequestFailure) => void
+}
+
 export interface SafeLogManager {
   info(message: string, metadata?: Record<string, unknown>): void
   warn(message: string, metadata?: Record<string, unknown>): void
@@ -33,6 +49,8 @@ export interface SafeLogManager {
 export interface MiniProgramRuntime {
   request<T>(options: RequestOptions<T>): unknown
   login(options: LoginOptions): void
+  downloadFile(options: DownloadFileOptions): unknown
+  openDocument(options: OpenDocumentOptions): void
   getStorageSync(key: string): unknown
   setStorageSync(key: string, value: unknown): void
   removeStorageSync(key: string): void

@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   bindAndRoute: vi.fn(),
   isSignedOut: vi.fn(),
   isPasswordLoginEnabled: vi.fn(),
+  isReleaseEnvironment: vi.fn(),
   shouldShowLoginChoice: vi.fn(),
   loginAndRoute: vi.fn(),
   passwordLoginAndRoute: vi.fn(),
@@ -43,6 +44,7 @@ vi.mock("../miniprogram/services", () => {
       bindAndRoute: mocks.bindAndRoute,
       isSignedOut: mocks.isSignedOut,
       isPasswordLoginEnabled: mocks.isPasswordLoginEnabled,
+      isReleaseEnvironment: mocks.isReleaseEnvironment,
       shouldShowLoginChoice: mocks.shouldShowLoginChoice,
       loginAndRoute: mocks.loginAndRoute,
       passwordLoginAndRoute: mocks.passwordLoginAndRoute,
@@ -82,6 +84,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   mocks.isSignedOut.mockReturnValue(false)
   mocks.isPasswordLoginEnabled.mockReturnValue(true)
+  mocks.isReleaseEnvironment.mockReturnValue(false)
   mocks.shouldShowLoginChoice.mockReturnValue(false)
 })
 

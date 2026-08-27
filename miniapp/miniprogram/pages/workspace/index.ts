@@ -14,7 +14,7 @@ Page({
     }
     this.setData({
       username: user.username,
-      roleLabel: user.role === "member" ? "会员空间" : "教练空间",
+      roleLabel: user.role === "member" ? "会员空间" : user.role === "coach" ? "教练空间" : "管理员工作台",
       items: navigationForRole(user.role),
     })
   },

@@ -1,5 +1,5 @@
 <view class="page-shell">
-  <text class="eyebrow">Lesson record</text>
+  <text class="eyebrow">课时记录</text>
   <view class="title">私教课时签到</view>
   <async-state wx:if="{{mode !== 'ready'}}" mode="{{mode}}" message="{{message}}" bindretry="load" />
   <view wx:else class="coach-form">

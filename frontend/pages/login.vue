@@ -26,7 +26,7 @@ async function submit() {
 <template>
   <main class="login-shell">
     <form class="login-card" @submit.prevent="submit">
-      <p class="eyebrow">Yoga SYS</p>
+      <p class="eyebrow">瑜伽馆管理系统</p>
       <h1>登录运营中台</h1>
       <label>用户名<input v-model="username" autocomplete="username" required /></label>
       <label>密码<input v-model="password" type="password" autocomplete="current-password" required /></label>

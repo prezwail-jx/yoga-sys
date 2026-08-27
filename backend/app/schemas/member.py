@@ -7,6 +7,7 @@ from pydantic import Field
 from app.schemas.base import ApiModel
 
 MemberStatusEnum = Literal["normal", "paused", "expired", "disabled"]
+CardStatusEnum = Literal["pending_activation", "active", "frozen", "expired", "closed"]
 
 
 class CreateMemberRequest(ApiModel):
@@ -28,6 +29,15 @@ class UpdateMemberRequest(ApiModel):
     emergency_contact: str | None = Field(None, max_length=100)
 
 
+class MemberCardSummary(ApiModel):
+    id: UUID
+    product_name: str
+    card_type: str
+    status: CardStatusEnum
+    remaining_times: int | None
+    expires_on: date | None
+
+
 class MemberResponse(ApiModel):
     id: UUID
     name: str
@@ -44,6 +54,7 @@ class MemberResponse(ApiModel):
     has_account: bool = False
     username: str | None = None
     account_id: UUID | None = None
+    card_summaries: list[MemberCardSummary] = Field(default_factory=list)
 
 
 class MemberListResponse(ApiModel):

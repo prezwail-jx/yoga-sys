@@ -1,25 +1,25 @@
 <template>
   <main class="page-shell">
     <section class="hero">
-      <p class="eyebrow">Yoga Studio Management</p>
-      <h1>Yoga Sys</h1>
+      <p class="eyebrow">瑜伽馆运营管理</p>
+      <h1>瑜伽馆管理系统</h1>
       <p class="summary">
         会员、卡项、交易和核销流程的管理系统骨架已经启动。当前前端先提供最小首页，
         后续可以继续补业务页面。
       </p>
 
-      <div class="status-grid" aria-label="Project status">
+      <div class="status-grid" aria-label="系统状态">
         <div class="status-item">
-          <span class="label">Frontend</span>
-          <strong>Nuxt 3 running</strong>
+          <span class="label">管理端</span>
+          <strong>运行正常</strong>
         </div>
         <div class="status-item">
-          <span class="label">Backend</span>
-          <strong>FastAPI ready</strong>
+          <span class="label">服务端</span>
+          <strong>服务就绪</strong>
         </div>
         <div class="status-item">
-          <span class="label">Stage</span>
-          <strong>Skeleton</strong>
+          <span class="label">系统阶段</span>
+          <strong>业务运行中</strong>
         </div>
       </div>
     </section>

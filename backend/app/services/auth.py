@@ -80,7 +80,7 @@ class AuthService:
 
     def change_own_password(self, username: str, request: ChangePasswordRequest):
         user = self.admin_user_repo.get_by_username(username)
-        if user is None or user.role not in {"member", "coach"}:
+        if user is None or user.role not in {"admin", "member", "coach"}:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="没有权限")
         if not verify_password(request.old_password, user.password_hash):
             raise self._unauthorized()

@@ -231,10 +231,20 @@ export interface Member {
   hasAccount: boolean
   username: string | null
   accountId: string | null
+  cardSummaries: MemberCardSummary[]
   note: string | null
   deletedAt: string | null
   createdAt: string
   updatedAt: string
+}
+
+export interface MemberCardSummary {
+  id: string
+  productName: string
+  cardType: CardType
+  status: MemberCardStatus
+  remainingTimes: number | null
+  expiresOn: string | null
 }
 
 export interface MemberInput {
@@ -400,7 +410,7 @@ export interface ReportTrend { category: ReportTrendCategory; points: Array<{ bu
 export interface ReportDetail { category: ReportDetailCategory; items: Record<string, unknown>[]; total: number; skip: number; limit: number }
 
 export type MemberCardStatus = "pending_activation" | "active" | "frozen" | "expired" | "closed"
-export type TransactionType = "purchase" | "renew" | "reissue" | "refund" | "freeze" | "unfreeze" | "extend"
+export type TransactionType = "purchase" | "renew" | "reissue" | "refund" | "freeze" | "unfreeze" | "extend" | "adjust"
 
 export interface MemberCard {
   id: string

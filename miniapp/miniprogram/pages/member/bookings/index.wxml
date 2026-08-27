@@ -1,5 +1,5 @@
 <view class="page-shell">
-  <text class="eyebrow">My history</text>
+  <text class="eyebrow">预约记录</text>
   <view class="title">我的预约</view>
   <view class="booking-tabs">
     <button class="booking-tabs__item {{tab === 'class' ? 'booking-tabs__item--active' : ''}}" data-tab="class" bindtap="switchTab">团课</button>
@@ -12,7 +12,7 @@
     <view wx:for="{{classItems}}" wx:key="id" wx:for-item="booking" class="member-card">
       <view class="member-card__headline">
         <text class="member-card__title">{{booking.courseName}}</text>
-        <text class="member-card__tag">{{booking.status}}</text>
+        <text class="member-card__tag">{{booking.statusLabel}}</text>
       </view>
       <text class="member-card__meta">{{booking.dateLabel}} · {{booking.timeLabel}}</text>
       <text class="member-card__meta">{{booking.coachName}} · {{booking.roomName}}</text>
@@ -24,7 +24,7 @@
     <view wx:for="{{privateItems}}" wx:key="id" wx:for-item="booking" class="member-card">
       <view class="member-card__headline">
         <text class="member-card__title">{{booking.coachName}}</text>
-        <text class="member-card__tag">{{booking.status}}</text>
+        <text class="member-card__tag">{{booking.statusLabel}}</text>
       </view>
       <text class="member-card__meta">{{booking.dateLabel}} · {{booking.timeLabel}}</text>
       <text wx:if="{{booking.memberMessage}}" class="member-card__meta">留言：{{booking.memberMessage}}</text>

@@ -9,6 +9,11 @@ Page({
   data: {
     status: "pending" as PrivateBookingStatus,
     statuses: ["pending", "confirmed", "completed", "rejected", "cancelled"] as PrivateBookingStatus[],
+    statusTabs: [
+      { label: "待确认", value: "pending" }, { label: "已确认", value: "confirmed" },
+      { label: "已完成", value: "completed" }, { label: "已拒绝", value: "rejected" },
+      { label: "已取消", value: "cancelled" },
+    ],
     items: [] as PrivateBookingView[],
     total: 0,
     mode: "loading",
@@ -33,7 +38,8 @@ Page({
     try {
       const page = await coachService.workload(this.data.status, skip, PAGE_SIZE)
       const items = reset ? page.items : [...this.data.items, ...page.items]
-      this.setData({ items, total: page.total, mode: items.length ? "ready" : "empty", message: items.length ? "" : `暂无 ${this.data.status} 私教记录` })
+      const label = this.data.statusTabs.find(item => item.value === this.data.status)?.label ?? "对应状态"
+      this.setData({ items, total: page.total, mode: items.length ? "ready" : "empty", message: items.length ? "" : `暂无${label}私教记录` })
     } catch (error) {
       this.setData({ mode: "error", message: error instanceof ApiError ? error.message : "私教工作加载失败" })
     }

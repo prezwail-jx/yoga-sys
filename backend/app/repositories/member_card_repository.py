@@ -31,6 +31,15 @@ class MemberCardRepository:
     def list_by_member(self, member_id: UUID) -> list[MemberCard]:
         return list(self.session.scalars(select(MemberCard).where(MemberCard.member_id == member_id).order_by(MemberCard.created_at.desc())).all())
 
+    def list_by_member_ids(self, member_ids: list[UUID]) -> list[MemberCard]:
+        if not member_ids:
+            return []
+        return list(self.session.scalars(
+            select(MemberCard)
+            .where(MemberCard.member_id.in_(member_ids))
+            .order_by(MemberCard.member_id, MemberCard.created_at.desc())
+        ).all())
+
     def list_fefo_candidates(
         self,
         member_id: UUID,

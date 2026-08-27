@@ -1,5 +1,5 @@
 <view class="page-shell">
-  <text class="eyebrow">First visit</text>
+  <text class="eyebrow">首次使用</text>
   <view class="title">连接你的瑜伽账号</view>
   <view class="muted">仅首次使用需要验证已有会员或教练账号。密码不会保存在小程序中。</view>
   <view class="panel bind-form">

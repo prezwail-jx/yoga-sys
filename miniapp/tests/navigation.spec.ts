@@ -5,23 +5,26 @@ import { apiBaseUrl, passwordLoginEnabled } from "../miniprogram/config/environm
 import { FakeRuntime } from "./helpers/fake-runtime"
 
 describe("role routing", () => {
-  it("provides disjoint member and coach destinations", () => {
+  it("provides disjoint member, coach and admin destinations", () => {
     const memberIds = navigationForRole("member").map((item) => item.id)
     const coachIds = navigationForRole("coach").map((item) => item.id)
+    const adminIds = navigationForRole("admin").map((item) => item.id)
     expect(memberIds).toEqual(["group-schedule", "private-training", "my-bookings", "my-cards"])
     expect(coachIds).toEqual(["assigned-classes", "attendance", "availability", "private-requests"])
     expect(memberIds).not.toContain("attendance")
     expect(coachIds).not.toContain("my-cards")
+    expect(adminIds).toContain("admin-members")
+    expect(adminIds).toContain("admin-reports")
   })
 
-  it("routes authenticated roles to workspace and rejects unsupported roles", () => {
+  it("routes all authenticated business roles to workspace", () => {
     const runtime = new FakeRuntime()
     const navigation = new NavigationService(runtime)
     navigation.routeAuthenticated({ username: "member", role: "member", memberId: "member-1" })
     expect(runtime.relaunches.at(-1)).toBe("/pages/workspace/index")
 
-    navigation.routeAuthenticated({ username: "admin", role: "admin" as "member" })
-    expect(runtime.relaunches.at(-1)).toBe("/pages/forbidden/index")
+    navigation.routeAuthenticated({ username: "admin", role: "admin" })
+    expect(runtime.relaunches.at(-1)).toBe("/pages/workspace/index")
   })
 
   it("selects isolated API bases by environment version", () => {
@@ -33,12 +36,12 @@ describe("role routing", () => {
     expect(apiBaseUrl(runtime)).toBe("https://yoga.tuitukj.com/backend")
   })
 
-  it("enables password login only in development and trial builds", () => {
+  it("shows password login in every environment for release administrators", () => {
     const runtime = new FakeRuntime()
     expect(passwordLoginEnabled(runtime)).toBe(true)
     runtime.envVersion = "trial"
     expect(passwordLoginEnabled(runtime)).toBe(true)
     runtime.envVersion = "release"
-    expect(passwordLoginEnabled(runtime)).toBe(false)
+    expect(passwordLoginEnabled(runtime)).toBe(true)
   })
 })

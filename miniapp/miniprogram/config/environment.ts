@@ -21,5 +21,11 @@ export function apiBaseUrl(runtime: MiniProgramRuntime): string {
 }
 
 export function passwordLoginEnabled(runtime: MiniProgramRuntime): boolean {
-  return environmentVersion(runtime) !== "release"
+  void runtime
+  return true
+}
+
+export function passwordLoginRoleAllowed(runtime: MiniProgramRuntime, role: string): role is "member" | "coach" | "admin" {
+  if (environmentVersion(runtime) === "release") return role === "admin"
+  return role === "member" || role === "coach" || role === "admin"
 }

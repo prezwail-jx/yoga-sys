@@ -16,7 +16,6 @@ const { data: products, status: productsStatus, error: productsError, refresh: r
 const { data: cards, refresh: refreshCards, status: cardsStatus, error: cardsError } = await useAsyncData(
   "transaction-member-cards",
   () => selectedMemberId.value ? api.getMemberCards(selectedMemberId.value) : Promise.resolve({ items: [], total: 0 }),
-  { watch: [selectedMemberId] },
 )
 
 const setupStatus = computed<"idle" | "pending" | "success" | "error">(() => {
@@ -28,6 +27,7 @@ const setupError = computed(() => membersError.value?.statusMessage || productsE
 async function retrySetup() { await Promise.all([refreshMembers(), refreshProducts()]) }
 
 watch(selectedMemberId, async (memberId) => {
+  await refreshCards()
   await navigateTo({ path: "/transactions", query: memberId ? { memberId } : {} }, { replace: true })
 })
 
@@ -75,6 +75,17 @@ async function unfreeze(payload: { card: MemberCard; reason: string }) {
     reset(); await refreshCards()
   } catch (error: unknown) { errorMessage.value = getApiErrorMessage(error, "解冻失败") }
 }
+async function adjust(payload: { card: MemberCard; timesDelta: number; reason: string }) {
+  const direction = payload.timesDelta > 0 ? "增加" : "扣减"
+  const count = Math.abs(payload.timesDelta)
+  if (!confirm(`确认将“${payload.card.productName}”${direction} ${count} 次？\n原因：${payload.reason}`)) return
+  const body = { timesDelta: payload.timesDelta, reason: payload.reason }
+  try {
+    await submit(`adjust:${payload.card.id}:${JSON.stringify(body)}`, key => api.adjustMemberCardTimes(payload.card.id, body, key))
+    message.value = `次数调整成功，当前剩余 ${payload.card.remainingTimes! + payload.timesDelta} 次`
+    reset(); await refreshCards()
+  } catch (error: unknown) { errorMessage.value = getApiErrorMessage(error, "次数调整失败") }
+}
 </script>
 
 <template>
@@ -98,7 +109,7 @@ async function unfreeze(payload: { card: MemberCard; reason: string }) {
   </section>
   <CommonAsyncState v-if="selectedMemberId" :status="cardsStatus" :empty="!cards?.items.length" pending-text="正在加载会员卡…" empty-text="该会员暂无卡项，可在上方办理购卡。" :error-message="cardsError?.statusMessage || '会员卡加载失败'" @retry="refreshCards">
   <div>
-    <MemberCardLifecyclePanel v-for="card in cards?.items || []" :key="card.id" :card="card" :pending="pending" @renew="renew" @reissue="reissue" @refund="refund" @extend="extend" @freeze="freeze" @unfreeze="unfreeze" />
+    <MemberCardsMemberCardLifecyclePanel v-for="card in cards?.items || []" :key="card.id" :card="card" :pending="pending" @renew="renew" @reissue="reissue" @refund="refund" @extend="extend" @freeze="freeze" @unfreeze="unfreeze" @adjust="adjust" />
   </div>
   </CommonAsyncState>
 </template>

@@ -1,5 +1,5 @@
 import { ApiError, type ApiClient } from "./api"
-import { passwordLoginEnabled } from "../config/environment"
+import { environmentVersion, passwordLoginEnabled, passwordLoginRoleAllowed } from "../config/environment"
 import type { NavigationService } from "./navigation"
 import type { MiniProgramRuntime } from "../platform/runtime"
 import type { StorageService } from "./storage"
@@ -63,6 +63,10 @@ export class SessionService {
     return passwordLoginEnabled(this.runtime)
   }
 
+  isReleaseEnvironment(): boolean {
+    return environmentVersion(this.runtime) === "release"
+  }
+
   shouldShowLoginChoice(): boolean {
     return this.isPasswordLoginEnabled()
       && !this.storage.token()
@@ -87,14 +91,18 @@ export class SessionService {
         authenticated: false,
         body: { username, password },
       })
-      if (result.role !== "member" && result.role !== "coach") {
-        throw new ApiError("仅会员和教练账号可以登录小程序", "authorization", 403, "local-role-check")
+      if (!passwordLoginRoleAllowed(this.runtime, result.role)) {
+        throw new ApiError("正式版账号密码登录仅限管理员", "authorization", 403, "local-role-check")
+      }
+      const user = await this.loadCurrentUser(result.access_token, false)
+      if (user.role !== result.role || !passwordLoginRoleAllowed(this.runtime, user.role)) {
+        throw new ApiError("正式版账号密码登录仅限管理员", "authorization", 403, "local-role-check")
       }
       this.storage.setToken(result.access_token)
+      this.storage.setUser(user)
       this.storage.setAuthMode("password")
       this.storage.clearSignedOut()
       this.storage.clearBinding()
-      const user = await this.loadCurrentUser()
       this.navigation.routeAuthenticated(user)
       return user
     } finally {
@@ -123,6 +131,9 @@ export class SessionService {
         authenticated: false,
         body: { bindingTicket: challenge.ticket, username, password },
       })
+      if (result.role === "admin") {
+        throw new ApiError("管理员请使用账号密码登录", "authorization", 403, "local-role-check")
+      }
       this.storage.setToken(result.accessToken)
       this.storage.setAuthMode("wechat")
       this.storage.clearBinding()
@@ -152,10 +163,21 @@ export class SessionService {
 
   private async restoreOrLogin(): Promise<BootstrapResult> {
     if (this.storage.token()) {
+      const authMode = this.storage.authMode()
       try {
-        return { state: "authenticated", user: await this.loadCurrentUser() }
+        const user = await this.loadCurrentUser(undefined, false)
+        if (authMode === "password" && !passwordLoginRoleAllowed(this.runtime, user.role)) {
+          this.storage.clearUnauthorizedSession()
+          throw new ApiError("正式版账号密码登录仅限管理员", "authorization", 403, "local-role-check")
+        }
+        this.storage.setUser(user)
+        return { state: "authenticated", user }
       } catch (error) {
         if (!(error instanceof ApiError) || error.kind !== "authentication") throw error
+        if (authMode === "password") {
+          this.storage.clearUnauthorizedSession()
+          throw error
+        }
       }
     }
     return this.startWechatSession()
@@ -177,20 +199,30 @@ export class SessionService {
       })
       return { state: "binding_required" }
     }
+    if (session.role === "admin") {
+      this.storage.clearSession()
+      this.navigation.routeForbidden()
+      throw new ApiError("管理员请使用账号密码登录", "authorization", 403, "local-role-check")
+    }
     this.storage.setToken(session.accessToken)
     this.storage.setAuthMode("wechat")
     this.storage.clearBinding()
     return { state: "authenticated", user: await this.loadCurrentUser() }
   }
 
-  private async loadCurrentUser(): Promise<CurrentUser> {
-    const user = await this.api.request<CurrentUser>("/auth/me")
-    if (user.role !== "member" && user.role !== "coach") {
+  private async loadCurrentUser(bearerToken?: string, persist = true): Promise<CurrentUser> {
+    const user = await this.api.request<CurrentUser>("/auth/me", { bearerToken })
+    if (user.role !== "member" && user.role !== "coach" && user.role !== "admin") {
       this.storage.clearSession()
       this.navigation.routeForbidden()
       throw new ApiError("Role is not supported by the Mini Program", "authorization", 403, "local-role-check")
     }
-    this.storage.setUser(user)
+    if (!bearerToken && user.role === "admin" && this.storage.authMode() === "wechat") {
+      this.storage.clearSession()
+      this.navigation.routeForbidden()
+      throw new ApiError("管理员请使用账号密码登录", "authorization", 403, "local-role-check")
+    }
+    if (persist) this.storage.setUser(user)
     return user
   }
 }

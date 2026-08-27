@@ -1,5 +1,5 @@
 <view class="page-shell">
-  <text class="eyebrow">Account security</text>
+  <text class="eyebrow">账号安全</text>
   <view class="title">修改登录密码</view>
   <view class="muted">验证当前密码后设置新密码。新密码至少 8 位，修改成功后旧密码立即失效。</view>
   <view class="panel security-form">

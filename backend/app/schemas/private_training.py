@@ -15,7 +15,7 @@ class PrivateAvailabilityInput(ApiModel):
     @model_validator(mode="after")
     def validate_time_order(self):
         if self.end_at <= self.start_at:
-            raise ValueError("endAt must be after startAt")
+            raise ValueError("endAt 必须晚于 startAt")
         return self
 
 

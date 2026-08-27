@@ -4,6 +4,7 @@ import { ApiClient } from "./api"
 import { IdempotencyService } from "./idempotency"
 import { MemberService } from "./member"
 import { CoachService } from "./coach"
+import { AdminService } from "./admin"
 import { NavigationService } from "./navigation"
 import { SessionService } from "./session"
 import { StorageService } from "./storage"
@@ -19,6 +20,7 @@ export const apiClient = new ApiClient(
 export const idempotencyService = new IdempotencyService(storageService)
 export const memberService = new MemberService(apiClient, idempotencyService, storageService)
 export const coachService = new CoachService(apiClient, idempotencyService, storageService)
+export const adminService = new AdminService(apiClient, idempotencyService, storageService)
 export const sessionService = new SessionService(
   runtime,
   apiClient,

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.domain.base import Base
 
-TRANSACTION_TYPES = ("purchase", "renew", "reissue", "refund", "freeze", "unfreeze", "extend")
+TRANSACTION_TYPES = ("purchase", "renew", "reissue", "refund", "freeze", "unfreeze", "extend", "adjust")
 
 class CardTransaction(Base):
     __tablename__ = "card_transaction"

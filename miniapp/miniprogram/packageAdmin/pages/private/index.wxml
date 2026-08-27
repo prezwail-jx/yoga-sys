@@ -1,0 +1,42 @@
+<view class="page-shell">
+  <view class="admin-header"><text class="eyebrow">私教管理</text><view class="title">时段与预约</view></view>
+  <view class="admin-actions"><button data-tab="bookings" bindtap="tab">预约处理</button><button data-tab="slots" bindtap="tab">开放时段</button></view>
+  <text wx:if="{{error}}" class="admin-error">{{error}}</text>
+  <async-state wx:if="{{mode !== 'ready'}}" mode="{{mode}}" message="{{message}}" bindretry="load"/>
+  <block wx:else>
+    <view wx:if="{{tab === 'bookings'}}">
+      <view wx:for="{{bookings}}" wx:key="id" class="admin-card">
+        <view class="admin-card__head"><text class="admin-card__title">{{item.memberName}}</text><text class="admin-badge">{{item.statusLabel}}</text></view>
+        <text class="admin-card__meta">{{item.coachName}} · {{item.startAt}} · {{item.timeLabel}}</text>
+        <view class="admin-actions"><button wx:if="{{item.status === 'pending'}}" data-id="{{item.id}}" data-action="confirm" bindtap="decide">确认</button><button wx:if="{{item.status === 'pending'}}" data-id="{{item.id}}" data-action="reject" bindtap="decide">拒绝</button><button wx:if="{{item.status === 'pending' || item.status === 'confirmed'}}" data-id="{{item.id}}" data-action="cancel" bindtap="decide">取消</button><button wx:if="{{item.status === 'confirmed'}}" data-id="{{item.id}}" bindtap="signIn">签到与课时记录</button></view>
+      </view>
+      <view wx:if="{{!bookings.length}}" class="admin-empty">暂无私教预约</view>
+    </view>
+    <view wx:else>
+      <view class="admin-form">
+        <text class="admin-card__title">{{editingId ? '编辑单个时段' : '新增单个时段'}}</text>
+        <picker range="{{coachNames}}" value="{{coachIndex}}" bindchange="chooseCoach"><view class="admin-picker">教练：{{coachNames[coachIndex] || '请选择'}}</view></picker>
+        <picker mode="date" value="{{slotDate}}" bindchange="slotDate"><view class="admin-picker">日期：{{slotDate}}</view></picker>
+        <picker mode="time" value="{{slotStartTime}}" data-field="slotStartTime" bindchange="slotTime"><view class="admin-picker">开始：{{slotStartTime}}</view></picker>
+        <picker mode="time" value="{{slotEndTime}}" data-field="slotEndTime" bindchange="slotTime"><view class="admin-picker">结束：{{slotEndTime}}</view></picker>
+        <view class="admin-actions"><button class="admin-button" loading="{{pendingId}}" disabled="{{pendingId}}" bindtap="saveSlot">{{editingId ? '保存修改' : '新增时段'}}</button><button wx:if="{{editingId}}" class="admin-button admin-button--light" bindtap="cancelEdit">取消编辑</button></view>
+      </view>
+      <view class="admin-form">
+        <text class="admin-card__title">批量生成一周时段</text>
+        <picker range="{{coachNames}}" value="{{coachIndex}}" bindchange="chooseCoach"><view class="admin-picker">教练：{{coachNames[coachIndex] || '请选择'}}</view></picker>
+        <picker mode="date" value="{{weekStart}}" bindchange="weekDate"><view class="admin-picker">所在周：{{weekStart}}</view></picker>
+        <checkbox-group bindchange="weekdays"><label wx:for="{{weekdayOptions}}" wx:key="value" class="admin-check"><checkbox value="{{item.value}}" checked="{{item.checked}}"/>{{item.label}}</label></checkbox-group>
+        <picker mode="time" value="{{weekStartTime}}" data-field="weekStartTime" bindchange="slotTime"><view class="admin-picker">开始：{{weekStartTime}}</view></picker>
+        <text class="admin-label">每节时长（分钟）</text><input class="admin-input" type="number" value="{{durationMinutes}}" bindinput="duration"/>
+        <button class="admin-button" loading="{{pendingId === 'generate-week'}}" disabled="{{pendingId}}" bindtap="generateWeek">确认批量生成</button>
+        <text wx:if="{{batchFeedback}}" class="admin-card__meta">{{batchFeedback}}</text><text wx:for="{{batchConflicts}}" wx:key="*this" class="admin-error">冲突：{{item}}</text>
+      </view>
+      <view wx:for="{{slots}}" wx:key="id" class="admin-card">
+        <view class="admin-card__head"><text class="admin-card__title">{{item.coachName}}</text><text class="admin-badge">{{item.statusLabel}}</text></view>
+        <text class="admin-card__meta">{{item.startAt}} · {{item.timeLabel}}</text>
+        <view wx:if="{{item.status === 'available'}}" class="admin-actions"><button data-id="{{item.id}}" bindtap="editSlot">编辑</button><button data-id="{{item.id}}" bindtap="deleteSlot">删除</button></view>
+      </view>
+      <view wx:if="{{!slots.length}}" class="admin-empty">暂无开放时段</view>
+    </view>
+  </block>
+</view>

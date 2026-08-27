@@ -355,20 +355,19 @@ def test_coach_changes_own_password_after_old_password_verification():
     assert verify_password("new-password", account.password_hash)
 
 
-def test_admin_cannot_use_self_service_password_change():
+def test_admin_can_use_self_service_password_change():
     account = SimpleNamespace(
         username="admin-user", role="admin", password_hash=get_password_hash("old-password")
     )
     accounts = AccountRepo()
     accounts.accounts.append(account)
 
-    with pytest.raises(HTTPException) as forbidden:
-        AuthService(accounts, ResourceRepo(), ResourceRepo()).change_own_password(
-            account.username,
-            ChangePasswordRequest(oldPassword="old-password", newPassword="new-password"),
-        )
-    assert forbidden.value.status_code == 403
-    assert verify_password("old-password", account.password_hash)
+    AuthService(accounts, ResourceRepo(), ResourceRepo()).change_own_password(
+        account.username,
+        ChangePasswordRequest(oldPassword="old-password", newPassword="new-password"),
+    )
+    assert not verify_password("old-password", account.password_hash)
+    assert verify_password("new-password", account.password_hash)
 
 
 @pytest.mark.parametrize("length", [7, 129])

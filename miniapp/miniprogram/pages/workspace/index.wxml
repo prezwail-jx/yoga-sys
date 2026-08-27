@@ -2,7 +2,7 @@
   <view class="workspace__header">
     <view>
       <text class="eyebrow">{{roleLabel}}</text>
-      <view class="title">今天，慢一点</view>
+      <view class="title">{{roleLabel === '管理员工作台' ? '今日运营' : '今天，慢一点'}}</view>
       <view class="muted">{{username}}，选择你现在要处理的事情。</view>
     </view>
     <button class="workspace__account" bindtap="account">账号</button>

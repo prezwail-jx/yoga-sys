@@ -15,6 +15,7 @@ def _create_request(**changes):
         "cardType": "times",
         "price": "300.00",
         "totalTimes": 10,
+        "validDays": 30,
         "activationMode": "immediate",
         "applicableCourseScope": "specific",
         "specificCourseIds": [],
@@ -31,7 +32,7 @@ def _product(**changes):
         "price": "300.00",
         "cost_price": None,
         "total_times": 10,
-        "valid_days": None,
+        "valid_days": 30,
         "activation_mode": "immediate",
         "applicable_course_scope": "group",
         "specific_course_ids": None,
@@ -116,3 +117,26 @@ def test_update_non_specific_scope_clears_stale_course_ids():
     assert updated.applicable_course_scope == "group"
     assert updated.specific_course_ids is None
     course_repo.existing_ids.assert_not_called()
+
+
+def test_times_card_requires_total_times_and_valid_days_with_chinese_errors():
+    with pytest.raises(ValueError, match="次数卡必须填写 totalTimes"):
+        _create_request(totalTimes=None)
+
+    with pytest.raises(ValueError, match="次数卡必须填写 validDays"):
+        _create_request(validDays=None)
+
+
+def test_update_historical_times_product_requires_missing_valid_days():
+    card_repo = MagicMock()
+    product = _product(valid_days=None)
+    card_repo.get_by_id.return_value = product
+    service = CardProductService(card_repo, MagicMock())
+
+    with pytest.raises(ValueError, match="次数卡必须填写 validDays"):
+        service.update_card_product(
+            product.id,
+            UpdateCardProductRequest.model_validate({"name": "历史次数卡"}),
+        )
+
+    card_repo.update.assert_not_called()

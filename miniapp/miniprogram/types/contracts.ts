@@ -1,4 +1,4 @@
-export type BusinessRole = "member" | "coach"
+export type BusinessRole = "member" | "coach" | "admin"
 
 export interface CurrentUser {
   username: string

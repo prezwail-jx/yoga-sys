@@ -68,11 +68,15 @@ def test_member_account_status_reset_self_change_and_password_safe_audit(
         headers=member_headers,
     )
     assert changed.status_code == 204
-    assert client.post(
+    admin_changed = client.post(
         "/auth/change-password",
         json={"oldPassword": "admin123", "newPassword": "other-password"},
         headers=auth_headers,
-    ).status_code == 403
+    )
+    assert admin_changed.status_code == 204
+    assert client.post(
+        "/auth/login", json={"username": "admin", "password": "other-password"}
+    ).status_code == 200
     assert client.post(
         "/auth/login", json={"username": "account-member", "password": "final-password"}
     ).status_code == 200

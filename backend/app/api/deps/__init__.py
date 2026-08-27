@@ -60,7 +60,7 @@ def get_member_repo(session: Session = Depends(get_session)) -> MemberRepository
 
 
 def get_member_service(session: Session = Depends(get_session)) -> MemberService:
-    return MemberService(MemberRepository(session), AdminUserRepository(session))
+    return MemberService(MemberRepository(session), AdminUserRepository(session), MemberCardRepository(session))
 
 
 def get_card_product_repo(session: Session = Depends(get_session)) -> CardProductRepository:

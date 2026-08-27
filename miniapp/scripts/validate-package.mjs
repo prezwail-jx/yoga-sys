@@ -16,7 +16,11 @@ if (project.setting?.minified !== true) throw new Error("release minification mu
 if (!Array.isArray(app.pages) || app.pages.length === 0) throw new Error("app.json must register pages")
 
 const entries = new Set(app.pages)
-for (const page of app.pages) {
+for (const subpackage of app.subpackages ?? []) {
+  if (!subpackage.root || !Array.isArray(subpackage.pages)) throw new Error("subpackage root and pages are required")
+  for (const page of subpackage.pages) entries.add(`${subpackage.root}/${page}`)
+}
+for (const page of entries) {
   const pageConfig = JSON.parse(await readFile(join(root, `${page}.json`), "utf8"))
   for (const component of Object.values(pageConfig.usingComponents ?? {})) {
     if (typeof component === "string" && component.startsWith("/")) {
@@ -34,4 +38,4 @@ for (const file of ["app.ts", "app.json", "app.wxss", app.sitemapLocation]) {
   await access(join(root, file))
 }
 
-stdout.write(`Validated ${app.pages.length} pages and ${entries.size - app.pages.length} local components\n`)
+stdout.write(`Validated ${entries.size} pages and local components\n`)

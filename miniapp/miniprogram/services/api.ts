@@ -25,6 +25,7 @@ export interface ApiRequestOptions {
   authenticated?: boolean
   idempotencyKey?: string
   timeoutMs?: number
+  bearerToken?: string
 }
 
 function randomId(): string {
@@ -72,7 +73,7 @@ export class ApiClient {
       "Content-Type": "application/json",
       "X-Trace-Id": traceId,
     }
-    const token = options.authenticated === false ? null : this.token()
+    const token = options.authenticated === false ? null : options.bearerToken ?? this.token()
     if (token) header.Authorization = `Bearer ${token}`
     if (options.idempotencyKey) header["Idempotency-Key"] = options.idempotencyKey
 
@@ -108,6 +109,48 @@ export class ApiClient {
             null,
             traceId,
           ))
+        },
+      })
+    })
+  }
+
+  downloadAndOpen(path: string, fileType = "xlsx"): Promise<void> {
+    const token = this.token()
+    const traceId = randomId()
+    if (!token) return Promise.reject(new ApiError("登录已失效，请重新登录", "authentication", 401, traceId))
+    return new Promise<void>((resolve, reject) => {
+      this.runtime.downloadFile({
+        url: `${this.baseUrl}${path}`,
+        header: { Authorization: `Bearer ${token}`, "X-Trace-Id": traceId },
+        timeout: 30_000,
+        success: (result) => {
+          this.logger.info("api.download", { path, statusCode: result.statusCode, traceId })
+          if (result.statusCode < 200 || result.statusCode >= 300) {
+            if (result.statusCode === 401) this.onUnauthorized()
+            reject(new ApiError(`报表下载失败（状态码 ${result.statusCode}）`, kindForStatus(result.statusCode), result.statusCode, traceId))
+            return
+          }
+          if (!result.tempFilePath) {
+            reject(new ApiError("报表下载成功但未生成临时文件", "server", result.statusCode, traceId))
+            return
+          }
+          this.runtime.openDocument({
+            filePath: result.tempFilePath,
+            fileType,
+            showMenu: true,
+            success: resolve,
+            fail: (failure) => reject(new ApiError(
+              `报表已下载，但无法打开临时文件：${failure.errMsg || "未知错误"}`,
+              "server",
+              null,
+              traceId,
+            )),
+          })
+        },
+        fail: (failure) => {
+          const timeout = failure.errMsg.toLowerCase().includes("timeout")
+          this.logger.warn("api.download_failure", { path, traceId, timeout, errno: failure.errno })
+          reject(new ApiError(timeout ? "报表下载超时，请稍后重试" : "报表下载失败，请检查网络后重试", timeout ? "timeout" : "network", null, traceId))
         },
       })
     })

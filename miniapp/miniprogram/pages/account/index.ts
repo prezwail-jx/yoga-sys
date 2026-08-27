@@ -13,7 +13,7 @@ Page({
     }
     this.setData({
       username: user.username,
-      roleLabel: user.role === "member" ? "会员" : "教练",
+      roleLabel: user.role === "member" ? "会员" : user.role === "coach" ? "教练" : "管理员",
     })
   },
   logout() {

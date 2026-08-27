@@ -1,5 +1,5 @@
 <view class="page-shell">
-  <text class="eyebrow">Availability</text>
+  <text class="eyebrow">私教时段</text>
   <view class="title">私教时间</view>
   <view wx:if="{{feedback}}" class="coach-feedback">{{feedback}}</view>
   <view class="coach-form">
@@ -37,7 +37,7 @@
       <text class="eyebrow availability-day">{{group.dateLabel}}</text>
       <view wx:for="{{group.items}}" wx:key="id" wx:for-item="slot" class="coach-card">
         <text class="coach-card__title">{{slot.timeLabel}}</text>
-        <text class="coach-card__meta">{{slot.durationMinutes}} 分钟 · {{slot.status}}</text>
+        <text class="coach-card__meta">{{slot.durationMinutes}} 分钟 · {{slot.statusLabel}}</text>
         <view wx:if="{{slot.status === 'available'}}" class="coach-actions">
           <button class="coach-button coach-button--secondary" data-id="{{slot.id}}" data-start="{{slot.startAt}}" data-duration="{{slot.durationMinutes}}" bindtap="edit">编辑</button>
           <button class="coach-button" loading="{{pendingId === slot.id}}" data-id="{{slot.id}}" bindtap="cancelSlot">取消</button>

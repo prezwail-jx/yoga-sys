@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.api.audit import record_audit
 from app.api.deps import CurrentUser, get_current_admin, get_member_service
+from app.api.deps.business_clock import get_business_today
 from app.infra.db.session import get_session
 from app.schemas.member import (
     CreateMemberRequest,
@@ -51,9 +52,10 @@ def list_members(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     service: MemberService = Depends(get_member_service),
+    today=Depends(get_business_today),
     _: CurrentUser = Depends(get_current_admin),
 ):
-    items, total = service.list_members(skip, limit, keyword, member_status)
+    items, total = service.list_members(skip, limit, keyword, member_status, today)
     return {"items": items, "total": total, "skip": skip, "limit": limit}
 
 
@@ -61,9 +63,10 @@ def list_members(
 def get_member(
     memberId: UUID,
     service: MemberService = Depends(get_member_service),
+    today=Depends(get_business_today),
     _: CurrentUser = Depends(get_current_admin),
 ):
-    return service.get_member_response(memberId)
+    return service.get_member_response(memberId, today)
 
 
 @router.patch("/{memberId}", response_model=MemberResponse)
